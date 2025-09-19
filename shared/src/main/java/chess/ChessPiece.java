@@ -94,6 +94,6 @@ public class ChessPiece {
             }
         }
 
-        return  validMoves;
+        return validMoves;
     }
 }
