@@ -110,6 +110,20 @@ public class ChessPiece {
             }
         }
 
+        if (piece == PieceType.KING) {
+            for (int i = 1; i <= 8; i++) {
+                for (int j = 1; j <= 8; j++) {
+                    ChessPosition endPosition = new ChessPosition(i, j);
+                    if (Math.abs(row - i) <= 1 && Math.abs(col - j) <= 1) {
+                        if (board.getPiece(endPosition) == null || board.getPiece(endPosition).getTeamColor() != pieceColor) {
+                            ChessMove move = new ChessMove(myPosition, endPosition, null);
+                            validMoves.add(move);
+                        }
+                    }
+                }
+            }
+        }
+
         return validMoves;
     }
 }
