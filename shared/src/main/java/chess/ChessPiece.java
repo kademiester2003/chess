@@ -83,17 +83,10 @@ public class ChessPiece {
         int col = myPosition.getColumn();
 
         if (piece == PieceType.BISHOP) {
-            for (int i = 1; i <= 8; i++) {
-                for (int j = 1; j <= 8; j++) {
-                    ChessPosition endPosition = new ChessPosition(i, j);
-                    if (Math.abs(row - i) == Math.abs(col - j) && row != i && col != j) {
-                        if (board.getPiece(endPosition) == null || board.getPiece(endPosition).getTeamColor() != pieceColor) {
-                                ChessMove move = new ChessMove(myPosition, endPosition, null);
-                                validMoves.add(move);
-                        }
-                    }
-                }
-            }
+            bishopQuadrant(validMoves, board, myPosition, 1, 1);
+            bishopQuadrant(validMoves, board, myPosition, -1, 1);
+            bishopQuadrant(validMoves, board, myPosition, 1, -1);
+            bishopQuadrant(validMoves, board, myPosition, -1, -1);
         }
 
         if (piece == PieceType.KNIGHT) {
@@ -125,5 +118,24 @@ public class ChessPiece {
         }
 
         return validMoves;
+    }
+
+    public void bishopQuadrant (Collection<ChessMove> validMoves, ChessBoard board, ChessPosition myPosition, int a, int b) {
+        int row = myPosition.getRow();
+        int col = myPosition.getColumn();
+        row+= a;
+        col+= b;
+        while (row >= 1 && row <= 8 && col >= 1 && col <= 8 && board.getPiece(new ChessPosition(row, col)) == null) {
+            ChessPosition endPosition = new ChessPosition(row, col);
+            ChessMove move = new ChessMove(myPosition, endPosition, null);
+            validMoves.add(move);
+            row+= a;
+            col+= b;
+        }
+        ChessPosition endPosition = new ChessPosition(row, col);
+        if (row >= 1 && row <= 8 && col >= 1 && col <= 8 && board.getPiece(new ChessPosition(row, col)) != null && board.getPiece(new ChessPosition(row, col)).getTeamColor() != pieceColor) {
+            ChessMove move2 = new ChessMove(myPosition, endPosition, null);
+            validMoves.add(move2);
+        }
     }
 }
