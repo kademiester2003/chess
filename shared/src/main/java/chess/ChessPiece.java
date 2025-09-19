@@ -85,10 +85,26 @@ public class ChessPiece {
         if (piece == PieceType.BISHOP) {
             for (int i = 1; i <= 8; i++) {
                 for (int j = 1; j <= 8; j++) {
+                    ChessPosition endPosition = new ChessPosition(i, j);
                     if (Math.abs(row - i) == Math.abs(col - j) && row != i && col != j) {
-                        ChessPosition endPosition = new ChessPosition(i, j);
-                        ChessMove move = new ChessMove(myPosition, endPosition, null);
-                        validMoves.add(move);
+                        if (board.getPiece(endPosition) == null || board.getPiece(endPosition).getTeamColor() != pieceColor) {
+                                ChessMove move = new ChessMove(myPosition, endPosition, null);
+                                validMoves.add(move);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (piece == PieceType.KNIGHT) {
+            for (int i = 1; i <= 8; i++) {
+                for (int j = 1; j <= 8; j++) {
+                    ChessPosition endPosition = new ChessPosition(i, j);
+                    if ((Math.abs(row - i) == 2 && Math.abs(col - j) == 1) || (Math.abs(row - i) == 1 && Math.abs(col - j) == 2)) {
+                        if (board.getPiece(endPosition) == null || board.getPiece(endPosition).getTeamColor() != pieceColor) {
+                            ChessMove move = new ChessMove(myPosition, endPosition, null);
+                            validMoves.add(move);
+                        }
                     }
                 }
             }
