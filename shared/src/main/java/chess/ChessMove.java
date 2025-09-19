@@ -12,12 +12,13 @@ public class ChessMove {
 
     ChessPosition startPosition;
     ChessPosition endPosition;
-    ChessPiece promotionPiece;
+    ChessPiece.PieceType promotionPiece;
 
     public ChessMove(ChessPosition startPosition, ChessPosition endPosition,
                      ChessPiece.PieceType promotionPiece) {
         this.startPosition = startPosition;
         this.endPosition = endPosition;
+        this.promotionPiece = promotionPiece;
     }
 
     @Override
@@ -58,7 +59,7 @@ public class ChessMove {
         if  (promotionPiece == null) {
             return null;
         }
-        return promotionPiece.getPieceType();
+        return promotionPiece;
     }
 
     @Override

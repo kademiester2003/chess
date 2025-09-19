@@ -173,6 +173,10 @@ public class ChessPiece {
             }
         }
 
+        else {
+            return null;
+        }
+
         return validMoves;
     }
 
