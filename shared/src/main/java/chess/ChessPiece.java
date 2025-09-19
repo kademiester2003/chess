@@ -121,10 +121,6 @@ public class ChessPiece {
             }
         }
 
-        if (piece == PieceType.ROOK) {
-
-        }
-
         if (piece == PieceType.KING) {
             for (int i = 1; i <= 8; i++) {
                 for (int j = 1; j <= 8; j++) {
@@ -134,6 +130,44 @@ public class ChessPiece {
                             ChessMove move = new ChessMove(myPosition, endPosition, null);
                             validMoves.add(move);
                         }
+                    }
+                }
+            }
+        }
+
+        if (piece == PieceType.PAWN) {
+            int forward;
+            if (board.getPiece(myPosition).getTeamColor() == ChessGame.TeamColor.WHITE) {
+                forward = 1;
+            }
+            else {
+                forward = -1;
+            }
+            if (row + forward >=1 && row + forward <= 8) {
+                ChessPosition endPosition = new ChessPosition(row + forward, col);
+                if (board.getPiece(endPosition) == null) {
+                    ChessMove move = new ChessMove(myPosition, endPosition, null);
+                    validMoves.add(move);
+                }
+                if (col + 1 <= 8) {
+                    ChessPosition endPosition2 = new ChessPosition(row + forward, col + 1);
+                    if (board.getPiece(endPosition2) != null && board.getPiece(endPosition2).getTeamColor() != pieceColor) {
+                        ChessMove move = new ChessMove(myPosition, endPosition2, null);
+                        validMoves.add(move);
+                    }
+                }
+                if (col - 1 >= 1) {
+                    ChessPosition endPosition3 = new ChessPosition(row + forward, col - 1);
+                    if (board.getPiece(endPosition3) != null && board.getPiece(endPosition3).getTeamColor() != pieceColor) {
+                        ChessMove move = new ChessMove(myPosition, endPosition3, null);
+                        validMoves.add(move);
+                    }
+                }
+                ChessPosition endPosition4 = new ChessPosition(row + 2 * forward, col);
+                if ((forward == 1 && row == 2) || (forward == -1 && row == 7)) {
+                    if (board.getPiece(endPosition4) == null && board.getPiece(endPosition) == null) {
+                        ChessMove move = new ChessMove(myPosition, endPosition4, null);
+                        validMoves.add(move);
                     }
                 }
             }
