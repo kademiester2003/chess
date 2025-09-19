@@ -83,10 +83,28 @@ public class ChessPiece {
         int col = myPosition.getColumn();
 
         if (piece == PieceType.BISHOP) {
-            bishopQuadrant(validMoves, board, myPosition, 1, 1);
-            bishopQuadrant(validMoves, board, myPosition, -1, 1);
-            bishopQuadrant(validMoves, board, myPosition, 1, -1);
-            bishopQuadrant(validMoves, board, myPosition, -1, -1);
+            lineUntilStop(validMoves, board, myPosition, 1, 1);
+            lineUntilStop(validMoves, board, myPosition, -1, 1);
+            lineUntilStop(validMoves, board, myPosition, 1, -1);
+            lineUntilStop(validMoves, board, myPosition, -1, -1);
+        }
+
+        if (piece == PieceType.ROOK) {
+            lineUntilStop(validMoves, board, myPosition, 1, 0);
+            lineUntilStop(validMoves, board, myPosition, -1, 0);
+            lineUntilStop(validMoves, board, myPosition, 0, 1);
+            lineUntilStop(validMoves, board, myPosition, 0, -1);
+        }
+
+        if (piece == PieceType.QUEEN) {
+            lineUntilStop(validMoves, board, myPosition, 1, 1);
+            lineUntilStop(validMoves, board, myPosition, -1, 1);
+            lineUntilStop(validMoves, board, myPosition, 1, -1);
+            lineUntilStop(validMoves, board, myPosition, -1, -1);
+            lineUntilStop(validMoves, board, myPosition, 1, 0);
+            lineUntilStop(validMoves, board, myPosition, -1, 0);
+            lineUntilStop(validMoves, board, myPosition, 0, 1);
+            lineUntilStop(validMoves, board, myPosition, 0, -1);
         }
 
         if (piece == PieceType.KNIGHT) {
@@ -101,6 +119,10 @@ public class ChessPiece {
                     }
                 }
             }
+        }
+
+        if (piece == PieceType.ROOK) {
+
         }
 
         if (piece == PieceType.KING) {
@@ -120,7 +142,7 @@ public class ChessPiece {
         return validMoves;
     }
 
-    public void bishopQuadrant (Collection<ChessMove> validMoves, ChessBoard board, ChessPosition myPosition, int a, int b) {
+    public void lineUntilStop(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition myPosition, int a, int b) {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
         row+= a;
