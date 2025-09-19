@@ -143,24 +143,60 @@ public class ChessPiece {
             else {
                 forward = -1;
             }
-            if (row + forward >=1 && row + forward <= 8) {
+            if (row + forward >= 1 && row + forward <= 8) {
                 ChessPosition endPosition = new ChessPosition(row + forward, col);
                 if (board.getPiece(endPosition) == null) {
-                    ChessMove move = new ChessMove(myPosition, endPosition, null);
-                    validMoves.add(move);
+                    if ((forward == 1 && row + forward == 8) || (forward == -1 && row + forward == 1)) {
+                        ChessMove move1 = new ChessMove(myPosition, endPosition, PieceType.ROOK);
+                        ChessMove move2 = new ChessMove(myPosition, endPosition, PieceType.QUEEN);
+                        ChessMove move3 = new ChessMove(myPosition, endPosition, PieceType.KNIGHT);
+                        ChessMove move4 = new ChessMove(myPosition, endPosition, PieceType.BISHOP);
+                        validMoves.add(move1);
+                        validMoves.add(move2);
+                        validMoves.add(move3);
+                        validMoves.add(move4);
+                    }
+                    else {
+                        ChessMove move = new ChessMove(myPosition, endPosition, null);
+                        validMoves.add(move);
+                    }
                 }
                 if (col + 1 <= 8) {
                     ChessPosition endPosition2 = new ChessPosition(row + forward, col + 1);
                     if (board.getPiece(endPosition2) != null && board.getPiece(endPosition2).getTeamColor() != pieceColor) {
-                        ChessMove move = new ChessMove(myPosition, endPosition2, null);
-                        validMoves.add(move);
+                        if ((forward == 1 && row + forward == 8) || (forward == -1 && row + forward == 1)) {
+                            ChessMove move1 = new ChessMove(myPosition, endPosition2, PieceType.ROOK);
+                            ChessMove move2 = new ChessMove(myPosition, endPosition2, PieceType.QUEEN);
+                            ChessMove move3 = new ChessMove(myPosition, endPosition2, PieceType.KNIGHT);
+                            ChessMove move4 = new ChessMove(myPosition, endPosition2, PieceType.BISHOP);
+                            validMoves.add(move1);
+                            validMoves.add(move2);
+                            validMoves.add(move3);
+                            validMoves.add(move4);
+                        }
+                        else {
+                            ChessMove move = new ChessMove(myPosition, endPosition2, null);
+                            validMoves.add(move);
+                        }
                     }
                 }
                 if (col - 1 >= 1) {
                     ChessPosition endPosition3 = new ChessPosition(row + forward, col - 1);
                     if (board.getPiece(endPosition3) != null && board.getPiece(endPosition3).getTeamColor() != pieceColor) {
-                        ChessMove move = new ChessMove(myPosition, endPosition3, null);
-                        validMoves.add(move);
+                        if ((forward == 1 && row + forward == 8) || (forward == -1 && row + forward == 1)) {
+                            ChessMove move1 = new ChessMove(myPosition, endPosition3, PieceType.ROOK);
+                            ChessMove move2 = new ChessMove(myPosition, endPosition3, PieceType.QUEEN);
+                            ChessMove move3 = new ChessMove(myPosition, endPosition3, PieceType.KNIGHT);
+                            ChessMove move4 = new ChessMove(myPosition, endPosition3, PieceType.BISHOP);
+                            validMoves.add(move1);
+                            validMoves.add(move2);
+                            validMoves.add(move3);
+                            validMoves.add(move4);
+                        }
+                        else {
+                            ChessMove move = new ChessMove(myPosition, endPosition3, null);
+                            validMoves.add(move);
+                        }
                     }
                 }
                 ChessPosition endPosition4 = new ChessPosition(row + 2 * forward, col);
@@ -171,10 +207,6 @@ public class ChessPiece {
                     }
                 }
             }
-        }
-
-        else {
-            return null;
         }
 
         return validMoves;
