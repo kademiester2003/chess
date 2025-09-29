@@ -24,7 +24,7 @@ public class ChessGame {
             return false;
         }
         ChessGame chessGame = (ChessGame) o;
-        return teamTurn == chessGame.teamTurn && Objects.equals(board, chessGame.board);
+        return teamTurn == chessGame.teamTurn && Objects.deepEquals(board, chessGame.board);
     }
 
     @Override
@@ -106,6 +106,18 @@ public class ChessGame {
         }
     }
 
+    public ChessPosition findPosition(ChessPiece piece) {
+        for (int i = 1; i <= 8; i++) {
+            for (int j = 1; j <= 8; j++) {
+                ChessPosition position = new ChessPosition(i, j);
+                if (board.getPiece(position) != null && board.getPiece(position) == piece) {
+                    return position;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Determines if the given team is in check
      *
@@ -134,7 +146,9 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        ChessPiece king = new ChessPiece(teamColor, ChessPiece.PieceType.KING);
+        ChessPosition position = findPosition(king);
+        return validMoves(position) == null;
     }
 
     /**
