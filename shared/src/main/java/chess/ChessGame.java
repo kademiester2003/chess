@@ -1,6 +1,7 @@
 package chess;
 
 import java.util.Collection;
+import java.util.Objects;
 
 /**
  * For a class that can manage a chess game, making moves on a board
@@ -15,6 +16,20 @@ public class ChessGame {
 
     public ChessGame(ChessBoard board) {
         board = this.board;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ChessGame chessGame = (ChessGame) o;
+        return teamTurn == chessGame.teamTurn && Objects.equals(board, chessGame.board);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(teamTurn, board);
     }
 
     /**
@@ -49,7 +64,12 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        throw new RuntimeException("Not implemented");
+        ChessPiece piece = board.getPiece(startPosition);
+        if (piece == null) {
+            return null;
+        }
+        // Still need to account for king in check
+        return piece.pieceMoves(board, startPosition);
     }
 
     /**
@@ -59,7 +79,31 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
-        throw new RuntimeException("Not implemented");
+        boolean moveIsInBoard = false;
+        Collection<ChessMove> validMoves = validMoves(move.getStartPosition());
+        for (ChessMove validMove : validMoves) {
+            if (validMove == move) {
+                moveIsInBoard = true;
+                break;
+            }
+        }
+
+        ChessPiece piece = board.getPiece(move.getStartPosition());
+        if (moveIsInBoard && piece.getTeamColor() == teamTurn) {
+            ChessPosition startPosition = move.getStartPosition();
+            ChessPosition endPosition = move.getEndPosition();
+            board.addPiece(endPosition, piece);
+            board.addPiece(startPosition, null);
+        }
+
+        else {
+            if (moveIsInBoard) {
+                throw new InvalidMoveException("Invalid move. Move not in valid moves");
+            }
+            else {
+                throw new InvalidMoveException("Invalid move. Not correct team turn");
+            }
+        }
     }
 
     /**
