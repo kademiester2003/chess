@@ -95,12 +95,6 @@ public class ChessBoard {
         addPiece(new ChessPosition(8, 5), new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING));
     }
 
-    public static void main(String[] args) {
-        ChessBoard board = new ChessBoard();
-        board.resetBoard();
-        System.out.println(board);
-    }
-
     @Override
     public String toString() {
         return "ChessBoard{" +

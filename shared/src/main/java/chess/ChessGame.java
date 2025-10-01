@@ -11,11 +11,12 @@ import java.util.Objects;
  */
 public class ChessGame {
 
-    private TeamColor teamTurn;
+    private TeamColor teamTurn = TeamColor.WHITE;
     private ChessBoard board;
 
-    public ChessGame(ChessBoard board) {
-        board = this.board;
+    public ChessGame() {
+        board = new ChessBoard();
+        board.resetBoard();
     }
 
     @Override
@@ -81,23 +82,30 @@ public class ChessGame {
     public void makeMove(ChessMove move) throws InvalidMoveException {
         boolean moveIsInBoard = false;
         Collection<ChessMove> validMoves = validMoves(move.getStartPosition());
-        for (ChessMove validMove : validMoves) {
-            if (validMove == move) {
-                moveIsInBoard = true;
-                break;
+        if (validMoves != null) {
+            for (ChessMove validMove : validMoves) {
+                //System.out.println(validMove.toString());
+                if (validMove.equals(move)) {
+                    moveIsInBoard = true;
+                    break;
+                }
             }
         }
-
         ChessPiece piece = board.getPiece(move.getStartPosition());
         if (moveIsInBoard && piece.getTeamColor() == teamTurn) {
             ChessPosition startPosition = move.getStartPosition();
             ChessPosition endPosition = move.getEndPosition();
             board.addPiece(endPosition, piece);
             board.addPiece(startPosition, null);
+            if (piece.getTeamColor() == TeamColor.WHITE) {
+                setTeamTurn(TeamColor.BLACK);
+            }
+            else {
+                setTeamTurn(TeamColor.WHITE);
+            }
         }
-
         else {
-            if (moveIsInBoard) {
+            if (!moveIsInBoard) {
                 throw new InvalidMoveException("Invalid move. Move not in valid moves");
             }
             else {
@@ -167,5 +175,11 @@ public class ChessGame {
      */
     public ChessBoard getBoard() {
         return board;
+    }
+
+    public static void main(String[] args) {
+        ChessGame game = new ChessGame();
+        ChessBoard board = game.getBoard();
+        System.out.println(board.toString());
     }
 }
