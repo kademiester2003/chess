@@ -109,7 +109,12 @@ public class ChessGame {
         if (moveIsInBoard && piece.getTeamColor() == teamTurn) {
             ChessPosition startPosition = move.getStartPosition();
             ChessPosition endPosition = move.getEndPosition();
-            board.addPiece(endPosition, piece);
+            if (move.getPromotionPiece() == null) {
+                board.addPiece(endPosition, piece);
+            }
+            else {
+                board.addPiece(endPosition, new ChessPiece(piece.getTeamColor(), move.getPromotionPiece()));
+            }
             board.addPiece(startPosition, null);
             if (piece.getTeamColor() == TeamColor.WHITE) {
                 setTeamTurn(TeamColor.BLACK);
