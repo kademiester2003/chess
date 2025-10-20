@@ -1,5 +1,3 @@
 package datamodel;
 
-public record RegistrationResult(String username, String authToken) {
-
-}
+public record RegistrationResult(String username, String authToken) {}
