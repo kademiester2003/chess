@@ -6,10 +6,12 @@ import model.User;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 
 public class MemoryDataAccess implements DataAccess {
     private final HashMap<String, User> users = new HashMap<>();
     private final HashMap<String, Auth> auths = new HashMap<>();
+    private final HashMap<String, Game> games = new HashMap<>();
 
     @Override
     public void createUser(User user) throws DataAccessException {
@@ -50,8 +52,8 @@ public class MemoryDataAccess implements DataAccess {
     }
 
     @Override
-    public List<Game> getGames() throws DataAccessException {
-        return List.of();
+    public List<Game> listGames() throws DataAccessException {
+        return new ArrayList<>(games.values());
     }
 
     @Override

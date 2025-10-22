@@ -8,17 +8,20 @@ import model.User;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import service.UserService;
+import service.GameService;
 
 public class Server {
 
     private final DataAccess dao;
     private final Javalin server;
     private final UserService userService;
-    private final Gson gson =  new Gson();
+    private final GameService gameService;
+    private final Gson gson = new Gson();
 
     public Server() {
         this.dao =  new MemoryDataAccess();
         this.userService = new UserService(dao);
+        this.gameService = new GameService(dao);
 
         server = Javalin.create(config -> config.staticFiles.add("web"));
         registerEndpoints();
@@ -70,7 +73,21 @@ public class Server {
             }
         });
         //listGames
-        server.get("/game", ctx -> {});
+        server.get("/game", ctx -> {
+            String token =  ctx.header("authorization");
+            try {
+                GameService.ListGamesRequest req = gson.fromJson(ctx.body(), GameService.ListGamesRequest.class);
+                var res = gameService.listGames(req);
+                ctx.status(200).result(gson.toJson(res));
+            } catch (IllegalArgumentException ex) {
+                ctx.status(401).json(error("Error: unauthorized"));
+            } catch (DataAccessException ex) {
+                if ("unauthorized".equals(ex.getMessage())) ctx.status(401).json(error("Error: unauthorized"));
+                else ctx.status(500).json(error("Error: " + ex.getMessage()));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
         //createGame
         server.post("/game", ctx -> {});
         //joinGame
