@@ -162,6 +162,10 @@ public class Server {
                     String errorMessage = "Error: already taken";
                     ctx.status(403).result(String.format("{\"message\": \"%s\"}", errorMessage));
                 }
+                else if ("game not found".equals(ex.getMessage())) {
+                    String errorMessage = "Error: game not found";
+                    ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
+                }
                 else {
                     String errorMessage = ex.getMessage();
                     ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
