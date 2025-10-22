@@ -3,15 +3,18 @@ package dataaccess;
 import model.Auth;
 import model.Game;
 import model.User;
+import chess.ChessGame;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MemoryDataAccess implements DataAccess {
     private final HashMap<String, User> users = new HashMap<>();
     private final HashMap<String, Auth> auths = new HashMap<>();
-    private final HashMap<String, Game> games = new HashMap<>();
+    private final HashMap<Integer, Game> games = new HashMap<>();
+    private final AtomicInteger gameIdCounter = new AtomicInteger(1);
 
     @Override
     public void createUser(User user) throws DataAccessException {
@@ -43,7 +46,10 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public int createGame(Game game) throws DataAccessException {
-        return 0;
+        int id = gameIdCounter.getAndIncrement();
+        Game stored = new Game(id, game.whiteUsername(), game.blackUsername(), game.gameName(), game.game() == null ? new ChessGame() : game.game());
+        games.put(id, stored);
+        return id;
     }
 
     @Override

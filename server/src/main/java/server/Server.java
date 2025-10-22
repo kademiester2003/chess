@@ -89,7 +89,21 @@ public class Server {
             }
         });
         //createGame
-        server.post("/game", ctx -> {});
+        server.post("/game", ctx -> {
+            String token = ctx.header("authorization");
+            try {
+                var req = gson.fromJson(ctx.body(), GameService.CreateGamesRequest.class);
+                var res = gameService.createGame(token, req);
+                ctx.status(200).result(gson.toJson(res));
+            } catch (IllegalArgumentException ex) {
+                ctx.status(400).json(error("Error: bad request"));
+            } catch (DataAccessException ex) {
+                if ("unauthorized".equals(ex.getMessage())) ctx.status(401).json(error("Error: unauthorized"));
+                else ctx.status(500).json(error("Error: " + ex.getMessage()));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
         //joinGame
         server.put("/game", ctx -> {});
     }
