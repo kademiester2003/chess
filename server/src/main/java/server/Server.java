@@ -25,158 +25,87 @@ public class Server {
         registerEndpoints();
     }
 
-    private void registerEndpoints() {
-        //clear
-        server.delete("/db", ctx -> {
-            try {
-                dao.clear();
-                ctx.status(200).result("{}");
-            } catch (Exception e) {
-                String errorMessage = e.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //register
-        server.post("/user", ctx -> {
-            try {
-                UserService.RegisterRequest req = gson.fromJson(ctx.body(), UserService.RegisterRequest.class);
-                var res = userService.register(req);
-                ctx.status(200).json(gson.toJson(res));
-            } catch (IllegalArgumentException ex) {
-                String errorMessage = "Error: bad request";
-                ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (DataAccessException ex) {
-                if ("already taken".equals(ex.getMessage())) {
-                    String errorMessage = "Error: already taken";
-                    ctx.status(403).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else {
-                    String errorMessage = ex.getMessage();
-                    ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //login
-        server.post("/session", ctx -> {
-            try {
-                UserService.LoginRequest req = gson.fromJson(ctx.body(), UserService.LoginRequest.class);
-                var res = userService.login(req);
-                ctx.status(200).json(gson.toJson(res));
-            } catch (IllegalArgumentException ex) {
-                String errorMessage = "Error: bad request";
-                ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (DataAccessException ex) {
-                String errorMessage = "Error: unauthorized";
-                ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //logout
-        server.delete("/session", ctx -> {
-            String token = ctx.header("authorization");
-            try {
-                userService.logout(token);
-                ctx.status(200).result("{}");
-            } catch (IllegalArgumentException | DataAccessException ex) {
-                String errorMessage = "Error: unauthorized";
-                ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //listGames
-        server.get("/game", ctx -> {
-            String token =  ctx.header("authorization");
-            try {
-                var res = gameService.listGames(token);
-                ctx.status(200).json(gson.toJson(res));
-            } catch (IllegalArgumentException ex) {
-                String errorMessage = "Error: unauthorized";
-                ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (DataAccessException ex) {
-                if ("unauthorized".equals(ex.getMessage())) {
-                    String errorMessage = "Error: unauthorized";
-                    ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else {
-                    String errorMessage = ex.getMessage();
-                    ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //createGame
-        server.post("/game", ctx -> {
-            String token = ctx.header("authorization");
-            try {
-                var req = gson.fromJson(ctx.body(), GameService.CreateGameRequest.class);
-                var res = gameService.createGame(token, req);
-                ctx.status(200).json(gson.toJson(res));
-            } catch (IllegalArgumentException ex) {
-                String errorMessage =  "Error: bad request";
-                ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (DataAccessException ex) {
-                if ("unauthorized".equals(ex.getMessage())) {
-                    String errorMessage = "Error: unauthorized";
-                    ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else {
-                    String errorMessage = ex.getMessage();
-                    ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
-
-        //joinGame
-        server.put("/game", ctx -> {
-            String token = ctx.header("authorization");
-            try {
-                var req = gson.fromJson(ctx.body(), GameService.JoinGameRequest.class);
-                gameService.joinGame(token, req);
-                ctx.status(200).result("{}");
-            } catch (IllegalArgumentException ex) {
-                String  errorMessage = "Error: bad request";
-                ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            } catch (DataAccessException ex) {
-                if ("unauthorized".equals(ex.getMessage())) {
-                    String errorMessage = "Error: unauthorized";
-                    ctx.status(401).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else if ("already taken".equals(ex.getMessage())) {
-                    String errorMessage = "Error: already taken";
-                    ctx.status(403).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else if ("game not found".equals(ex.getMessage())) {
-                    String errorMessage = "Error: game not found";
-                    ctx.status(400).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-                else {
-                    String errorMessage = ex.getMessage();
-                    ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-                }
-            } catch (Exception ex) {
-                String errorMessage = ex.getMessage();
-                ctx.status(500).result(String.format("{\"message\": \"%s\"}", errorMessage));
-            }
-        });
+    private void handleRequest(io.javalin.http.Context ctx, RunnableWithException action) {
+        try {
+            action.run();
+        } catch (IllegalArgumentException ex) {
+            respondWithError(ctx, 400, "Error: bad request");
+        } catch (DataAccessException ex) {
+            handleDataAccessException(ctx, ex);
+        } catch (Exception ex) {
+            respondWithError(ctx, 500, ex.getMessage());
+        }
     }
 
+    private void respondWithError(io.javalin.http.Context ctx, int status, String message) {
+        ctx.status(status).result(String.format("{\"message\": \"%s\"}", message));
+    }
+
+    private void handleDataAccessException(io.javalin.http.Context ctx, DataAccessException ex) {
+        switch (ex.getMessage()) {
+            case "unauthorized" -> respondWithError(ctx, 401, "Error: unauthorized");
+            case "already taken" -> respondWithError(ctx, 403, "Error: already taken");
+            case "game not found" -> respondWithError(ctx, 400, "Error: game not found");
+            default -> respondWithError(ctx, 500, ex.getMessage());
+        }
+    }
+
+    @FunctionalInterface
+    private interface RunnableWithException {
+        void run() throws Exception;
+    }
+
+    private void registerEndpoints() {
+        // clear
+        server.delete("/db", ctx -> handleRequest(ctx, () -> {
+            dao.clear();
+            ctx.status(200).result("{}");
+        }));
+
+        // register
+        server.post("/user", ctx -> handleRequest(ctx, () -> {
+            var req = gson.fromJson(ctx.body(), UserService.RegisterRequest.class);
+            var res = userService.register(req);
+            ctx.status(200).json(gson.toJson(res));
+        }));
+
+        // login
+        server.post("/session", ctx -> handleRequest(ctx, () -> {
+            var req = gson.fromJson(ctx.body(), UserService.LoginRequest.class);
+            var res = userService.login(req);
+            ctx.status(200).json(gson.toJson(res));
+        }));
+
+        // logout
+        server.delete("/session", ctx -> handleRequest(ctx, () -> {
+            String token = ctx.header("authorization");
+            userService.logout(token);
+            ctx.status(200).result("{}");
+        }));
+
+        // listGames
+        server.get("/game", ctx -> handleRequest(ctx, () -> {
+            String token = ctx.header("authorization");
+            var res = gameService.listGames(token);
+            ctx.status(200).json(gson.toJson(res));
+        }));
+
+        // createGame
+        server.post("/game", ctx -> handleRequest(ctx, () -> {
+            String token = ctx.header("authorization");
+            var req = gson.fromJson(ctx.body(), GameService.CreateGameRequest.class);
+            var res = gameService.createGame(token, req);
+            ctx.status(200).json(gson.toJson(res));
+        }));
+
+        // joinGame
+        server.put("/game", ctx -> handleRequest(ctx, () -> {
+            String token = ctx.header("authorization");
+            var req = gson.fromJson(ctx.body(), GameService.JoinGameRequest.class);
+            gameService.joinGame(token, req);
+            ctx.status(200).result("{}");
+        }));
+    }
 
     public int run(int desiredPort) {
         server.start(desiredPort);
