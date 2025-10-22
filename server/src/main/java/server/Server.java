@@ -36,12 +36,13 @@ public class Server {
                 ctx.status(500).json(error("Error: " + e.getMessage()));
             }
         });
+
         //register
         server.post("/user", ctx -> {
             try {
                 UserService.RegisterRequest req = gson.fromJson(ctx.body(), UserService.RegisterRequest.class);
                 var res = userService.register(req);
-                ctx.status(200).json(res);
+                ctx.status(200).json(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
                 ctx.status(400).json(error("Error: bad request"));
             } catch (DataAccessException ex) {
@@ -51,12 +52,13 @@ public class Server {
                 ctx.status(500).json(error("Error: " + ex.getMessage()));
             }
         });
+
         //login
         server.post("/session", ctx -> {
             try {
                 UserService.LoginRequest req = gson.fromJson(ctx.body(), UserService.LoginRequest.class);
                 var res = userService.login(req);
-                ctx.status(200).json(res);
+                ctx.status(200).json(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
                 ctx.status(400).json(error("Error: bad request"));
             } catch (DataAccessException ex) {
@@ -65,6 +67,7 @@ public class Server {
                 ctx.status(500).json(error("Error: " + ex.getMessage()));
             }
         });
+
         //logout
         server.delete("/session", ctx -> {
             String token = ctx.header("authorization");
@@ -77,12 +80,13 @@ public class Server {
                 ctx.status(500).json(error("Error: " + ex.getMessage()));
             }
         });
+
         //listGames
         server.get("/game", ctx -> {
             String token =  ctx.header("authorization");
             try {
                 var res = gameService.listGames(token);
-                ctx.status(200).result(gson.toJson(res));
+                ctx.status(200).json(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
                 ctx.status(401).json(error("Error: unauthorized"));
             } catch (DataAccessException ex) {
@@ -92,13 +96,14 @@ public class Server {
                 ctx.status(500).json(error("Error: " + ex.getMessage()));
             }
         });
+
         //createGame
         server.post("/game", ctx -> {
             String token = ctx.header("authorization");
             try {
                 var req = gson.fromJson(ctx.body(), GameService.CreateGameRequest.class);
                 var res = gameService.createGame(token, req);
-                ctx.status(200).result(gson.toJson(res));
+                ctx.status(200).json(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
                 ctx.status(400).json(error("Error: bad request"));
             } catch (DataAccessException ex) {
@@ -108,6 +113,7 @@ public class Server {
                 ctx.status(500).json(error("Error: " + ex.getMessage()));
             }
         });
+
         //joinGame
         server.put("/game", ctx -> {
             String token = ctx.header("authorization");

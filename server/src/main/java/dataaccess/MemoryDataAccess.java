@@ -25,6 +25,7 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public User getUser(String username) {
+        var myUsers = users.get(username);
         return users.get(username);
     }
 
