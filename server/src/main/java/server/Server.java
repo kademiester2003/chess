@@ -11,38 +11,22 @@ import service.UserService;
 
 public class Server {
 
+    private final DataAccess dao;
     private final Javalin server;
     private final UserService userService;
 
     public Server() {
-        DataAccess dataAccess = new MemoryDataAccess();
-        userService = new UserService(dataAccess);
+        this.dao =  new MemoryDataAccess();
+        this.userService = new UserService(dao);
+
         server = Javalin.create(config -> config.staticFiles.add("web"));
-
-        //clear (does not call clear)
-        server.delete("db", ctx -> ctx.result( "{}"));
-
-        //register
-        server.post("user", this::register);
-
-        //login
-        server.post("session", this::login);
-
-        //logout (does not call logout)
-        server.delete("session", ctx -> ctx.result("{}"));
-
-        //listGames
-        server.get("game", this::listGames);
-
-        //createGame
-        server.post("game", this::createGame);
-
-        //joinGame
-        server.put("game", this::joinGame);
-
-        // Register your endpoints and exception handlers here.
-
+        registerEndpoints();
+        registerExceptionHandlers();
     }
+
+    private void registerEndpoints() {}
+
+    private void registerExceptionHandlers() {}
 
     private void register(Context ctx) {
         var serializer = new Gson();
