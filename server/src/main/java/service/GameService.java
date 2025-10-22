@@ -17,7 +17,7 @@ public class GameService {
     public record ListGamesResult(List<Game> games) {}
 
     public ListGamesResult listGames(String authToken) throws DataAccessException {
-        if (authToken == null) throw new IllegalArgumentException("unauthorized");
+        if (authToken == null) throw new IllegalArgumentException("bad request");
         Auth auth = dao.getAuth(authToken);
         if (auth == null) throw new IllegalArgumentException("unauthorized");
         var list = dao.listGames();
@@ -29,7 +29,7 @@ public class GameService {
 
 
     public CreateGameResult createGame(String authToken, CreateGameRequest request) throws DataAccessException{
-        if (authToken == null || request == null || request.gameName() == null) throw new IllegalArgumentException("bad request");
+        if (authToken == null || request == null || request.gameName() == null) throw new IllegalArgumentException("bad request"); //
         Auth auth = dao.getAuth(authToken);
         if (auth == null) throw new DataAccessException("unauthorized");
 
@@ -41,7 +41,7 @@ public class GameService {
     public record JoinGameRequest(String playerColor, int gameID) {}
 
     public void joinGame(String authToken, JoinGameRequest request) throws DataAccessException {
-        if (authToken == null || request == null) throw new IllegalArgumentException("bad request");
+        if (authToken == null || request == null) throw new IllegalArgumentException("bad request"); //
         Auth auth = dao.getAuth(authToken);
         if  (auth == null) throw new DataAccessException("unauthorized");
 
@@ -50,7 +50,7 @@ public class GameService {
 
         String player = auth.username();
         String color = request.playerColor();
-        if (!"WHITE".equals(color) && !"BLACK".equals(color)) throw new IllegalArgumentException("bad request");
+        if (!"WHITE".equals(color) && !"BLACK".equals(color)) throw new IllegalArgumentException("bad request"); //
 
         if ("WHITE".equals(color)) {
             if (game.whiteUsername() != null) throw new DataAccessException("already taken");

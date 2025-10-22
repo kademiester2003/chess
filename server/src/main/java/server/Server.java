@@ -5,6 +5,7 @@ import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import dataaccess.MemoryDataAccess;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import service.UserService;
 import service.GameService;
 
@@ -25,11 +26,16 @@ public class Server {
         registerEndpoints();
     }
 
-    private void handleRequest(io.javalin.http.Context ctx, RunnableWithException action) {
+    private void handleRequest(Context ctx, RunnableWithException action) {
         try {
             action.run();
         } catch (IllegalArgumentException ex) {
-            respondWithError(ctx, 400, "Error: bad request");
+            if (ex.getMessage().equals("bad request")) {
+                respondWithError(ctx, 400, "Error: bad request");
+            }
+            else {
+                respondWithError(ctx, 401, "Error: unauthorized");
+            }
         } catch (DataAccessException ex) {
             handleDataAccessException(ctx, ex);
         } catch (Exception ex) {
@@ -57,10 +63,14 @@ public class Server {
 
     private void registerEndpoints() {
         // clear
-        server.delete("/db", ctx -> handleRequest(ctx, () -> {
-            dao.clear();
-            ctx.status(200).result("{}");
-        }));
+        server.delete("/db", ctx -> {
+            try {
+                dao.clear();
+                ctx.status(200).result("{}");
+            } catch (Exception ex) {
+                respondWithError(ctx, 500, ex.getMessage());
+            }
+        });
 
         // register
         server.post("/user", ctx -> handleRequest(ctx, () -> {
