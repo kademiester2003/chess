@@ -105,7 +105,22 @@ public class Server {
             }
         });
         //joinGame
-        server.put("/game", ctx -> {});
+        server.put("/game", ctx -> {
+            String token = ctx.header("authorization");
+            try {
+                var req = gson.fromJson(ctx.body(), GameService.JoinGameRequest.class);
+                gameService.joinGame(token, req);
+                ctx.status(200).result("{}");
+            } catch (IllegalArgumentException ex) {
+                ctx.status(400).json(error("Error: bad request"));
+            } catch (DataAccessException ex) {
+                if ("unauthorized".equals(ex.getMessage())) ctx.status(401).json(error("Error: unauthorized"));
+                else if ("already taken".equals(ex.getMessage())) ctx.status(403).json(error("Error: already taken"));
+                else ctx.status(500).json(error("Error: " + ex.getMessage()));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
     }
 
     private void registerExceptionHandlers() {

@@ -54,7 +54,7 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public Game getGame(int gameID) throws DataAccessException {
-        return null;
+        return games.get(gameID);
     }
 
     @Override
@@ -64,6 +64,7 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public void updateGame(Game game) throws DataAccessException {
-
+        if (!games.containsKey(game.gameID())) throw new DataAccessException("Game not found");
+        games.put(game.gameID(), game);
     }
 }
