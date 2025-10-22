@@ -96,7 +96,7 @@ public class Server {
         server.post("/game", ctx -> {
             String token = ctx.header("authorization");
             try {
-                var req = gson.fromJson(ctx.body(), GameService.CreateGamesRequest.class);
+                var req = gson.fromJson(ctx.body(), GameService.CreateGameRequest.class);
                 var res = gameService.createGame(token, req);
                 ctx.status(200).result(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
