@@ -35,17 +35,12 @@ public class MemoryDataAccess implements DataAccess {
     }
 
     @Override
-    public Auth getAuth(String token) throws DataAccessException {
+    public Auth getAuth(String token) {
         return auths.get(token);
     }
 
     @Override
-    public void deleteAuth(String token) throws DataAccessException {
-        auths.remove(token);
-    }
-
-    @Override
-    public int createGame(Game game) throws DataAccessException {
+    public int createGame(Game game) {
         int id = gameIdCounter.getAndIncrement();
         Game stored = new Game(id, game.whiteUsername(), game.blackUsername(), game.gameName(), game.game() == null ? new ChessGame() : game.game());
         games.put(id, stored);
@@ -53,12 +48,17 @@ public class MemoryDataAccess implements DataAccess {
     }
 
     @Override
-    public Game getGame(int gameID) throws DataAccessException {
+    public Game getGame(int gameID) {
         return games.get(gameID);
     }
 
     @Override
-    public List<Game> listGames() throws DataAccessException {
+    public void deleteAuth(String token) {
+        auths.remove(token);
+    }
+
+    @Override
+    public List<Game> listGames() {
         return new ArrayList<>(games.values());
     }
 
@@ -66,5 +66,12 @@ public class MemoryDataAccess implements DataAccess {
     public void updateGame(Game game) throws DataAccessException {
         if (!games.containsKey(game.gameID())) throw new DataAccessException("Game not found");
         games.put(game.gameID(), game);
+    }
+
+    public void clear() {
+        users.clear();
+        auths.clear();
+        games.clear();
+        gameIdCounter.set(1);
     }
 }

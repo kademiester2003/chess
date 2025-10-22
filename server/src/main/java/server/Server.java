@@ -4,9 +4,7 @@ import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 import dataaccess.MemoryDataAccess;
-import model.User;
 import io.javalin.Javalin;
-import io.javalin.http.Context;
 import service.UserService;
 import service.GameService;
 
@@ -30,7 +28,14 @@ public class Server {
 
     private void registerEndpoints() {
         //clear
-        server.delete("/db", ctx -> {});
+        server.delete("/db", ctx -> {
+            try {
+                dao.clear();
+                ctx.status(200).result("{}");
+            } catch (Exception e) {
+                ctx.status(500).json(error("Error: " + e.getMessage()));
+            }
+        });
         //register
         server.post("/user", ctx -> {
             try {
@@ -124,9 +129,7 @@ public class Server {
     }
 
     private void registerExceptionHandlers() {
-        server.exception(Exception.class, (e, ctx) -> {
-            ctx.status(500).json("Error: " + error(e.getMessage()));
-        });
+        server.exception(Exception.class, (e, ctx) -> ctx.status(500).json("Error: " + error(e.getMessage())));
     }
 
     private Object error(String msg) {
