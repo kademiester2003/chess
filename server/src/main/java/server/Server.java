@@ -2,6 +2,7 @@ package server;
 
 import com.google.gson.Gson;
 import dataaccess.DataAccess;
+import dataaccess.DataAccessException;
 import dataaccess.MemoryDataAccess;
 import model.User;
 import io.javalin.Javalin;
@@ -13,6 +14,7 @@ public class Server {
     private final DataAccess dao;
     private final Javalin server;
     private final UserService userService;
+    private final Gson gson =  new Gson();
 
     public Server() {
         this.dao =  new MemoryDataAccess();
@@ -27,7 +29,20 @@ public class Server {
         //clear
         server.delete("/db", ctx -> {});
         //register
-        server.post("/user", ctx -> {});
+        server.post("/user", ctx -> {
+            try {
+                UserService.RegisterRequest req = gson.fromJson(ctx.body(), UserService.RegisterRequest.class);
+                var res = userService.register(req);
+                ctx.status(200).json(res);
+            } catch (IllegalArgumentException ex) {
+                ctx.status(400).json(error("Error: bad request"));
+            } catch (DataAccessException ex) {
+                if ("already taken".equals(ex.getMessage())) ctx.status(403).json(error("Error: already taken"));
+                else ctx.status(500).json(error("Error: " + ex.getMessage()));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
         //login
         server.post("/session", ctx -> {});
         //logout

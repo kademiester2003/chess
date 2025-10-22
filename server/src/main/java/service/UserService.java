@@ -1,34 +1,38 @@
 package service;
 
 import dataaccess.DataAccess;
-import model.RegistrationResult;
-import model.LoginResult;
-import model.ListGamesResult;
-import model.User;
+import dataaccess.DataAccessException;
+import model.*;
+
 import java.util.UUID;
 
 public class UserService {
-    private final DataAccess dataAccess;
-    public UserService(DataAccess dataAccess) {
-        this.dataAccess = dataAccess;
+    private final DataAccess dao;
+
+    public UserService(DataAccess dao) {
+        this.dao = dao;
     }
 
-    public RegistrationResult register(User user) {
-        dataAccess.saveUser(user);
-        String authToken = UUID.randomUUID().toString();
-        return new RegistrationResult(user.username(), authToken);
+    public record RegisterRequest(String username, String password, String email) {}
+    public record RegisterResult(String username, String authToken) {}
+
+    public RegisterResult register(RegisterRequest request) throws DataAccessException, IllegalArgumentException {
+        if (request == null || request.username == null || request.password == null || request.email == null) {
+            throw new IllegalArgumentException("bad request");
+        }
+
+        var existing = dao.getUser(request.username());
+        if (existing != null) throw new DataAccessException("already taken");
+
+        User user = new User(request.username, request.password, request.email);
+        dao.createUser(user);
+
+        String token = generateToken();
+        dao.createAuth(new Auth(token, request.username));
+        return new RegisterResult(request.username(), token);
     }
 
-    public LoginResult login(User user) {
-        return null;
-    }
-
-    public ListGamesResult listGames(User user) {
-    }
-
-    public Object createGame(User req) {
-    }
-
-    public Object joinGame(User req) {
+    public static String generateToken() {
+        return UUID.randomUUID().toString();
     }
 }

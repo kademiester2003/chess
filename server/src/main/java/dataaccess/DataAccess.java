@@ -5,7 +5,6 @@ import model.*;
 import java.util.List;
 
 public interface DataAccess {
-    void saveUser(User user) throws DataAccessException;
     void createUser(User user) throws DataAccessException;
     User getUser(String username) throws DataAccessException;
 
