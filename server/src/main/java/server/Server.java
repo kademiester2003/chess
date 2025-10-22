@@ -4,10 +4,9 @@ import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.MemoryDataAccess;
 import model.User;
-import io.javalin.*;
+import io.javalin.Javalin;
 import io.javalin.http.Context;
 import service.UserService;
-
 
 public class Server {
 
@@ -24,48 +23,28 @@ public class Server {
         registerExceptionHandlers();
     }
 
-    private void registerEndpoints() {}
+    private void registerEndpoints() {
+        //clear
+        server.delete("/db", ctx -> {});
+        //register
+        server.post("/user", ctx -> {});
+        //login
+        server.post("/session", ctx -> {});
+        //logout
+        server.delete("/session", ctx -> {});
+        //listGames
+        server.get("/game", ctx -> {});
+        //createGame
+        server.post("/game", ctx -> {});
+        //joinGame
+        server.put("/game", ctx -> {});
+    }
 
     private void registerExceptionHandlers() {}
 
-    private void register(Context ctx) {
-        var serializer = new Gson();
-        var req = serializer.fromJson(ctx.body(), User.class);
-        var res = userService.register(req);
-        ctx.result(serializer.toJson(res));
+    private Object error(String msg) {
+        return new Object() {public final String message = msg;};
     }
-
-    private void login(Context ctx) {
-        var serializer = new Gson();
-        var req = serializer.fromJson(ctx.body(), User.class);
-        var res = userService.login(req);
-        ctx.result(serializer.toJson(res));
-    }
-
-    private void logout(Context ctx) {}
-
-    private void listGames(Context ctx) {
-        var serializer = new Gson();
-        var req = serializer.fromJson(ctx.body(), User.class);
-        var res = userService.listGames(req);
-        ctx.result(serializer.toJson(res));
-    }
-
-    private void createGame(Context ctx) {
-        var serializer = new Gson();
-        var req = serializer.fromJson(ctx.body(), User.class);
-        var res = userService.createGame(req);
-        ctx.result(serializer.toJson(res));
-    }
-
-    private void joinGame(Context ctx) {
-        var serializer = new Gson();
-        var req = serializer.fromJson(ctx.body(), User.class);
-        var res = userService.joinGame(req);
-        ctx.result(serializer.toJson(res));
-    }
-
-    private void clear(Context ctx) {}
 
     public int run(int desiredPort) {
         server.start(desiredPort);
