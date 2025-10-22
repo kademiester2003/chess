@@ -24,7 +24,7 @@ public class UserServiceTest {
         var res = userService.register(req);
         assertEquals("alice", res.username());
         assertNotNull(res.authToken());
-        // auth exists
+
         Auth auth = dao.getAuth(res.authToken());
         assertNotNull(auth);
         assertEquals("alice", auth.username());
@@ -48,13 +48,13 @@ public class UserServiceTest {
         var res = userService.login(login);
         assertEquals("carol", res.username());
         assertNotNull(res.authToken());
-        // logout should remove auth
+
         userService.logout(res.authToken());
         assertNull(dao.getAuth(res.authToken()));
     }
 
     @Test
-    public void loginUnauthorized() throws Exception {
+    public void loginUnauthorized() {
         DataAccessException ex = assertThrows(DataAccessException.class, () -> userService.login(new UserService.LoginRequest("no","no")));
         assertEquals("unauthorized", ex.getMessage());
     }
