@@ -31,12 +31,12 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public Auth getAuth(String token) throws DataAccessException {
-        return null;
+        return auths.get(token);
     }
 
     @Override
     public void deleteAuth(String token) throws DataAccessException {
-
+        auths.remove(token);
     }
 
     @Override

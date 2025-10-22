@@ -58,7 +58,17 @@ public class Server {
             }
         });
         //logout
-        server.delete("/session", ctx -> {});
+        server.delete("/session", ctx -> {
+            String token = ctx.header("authorization");
+            try {
+                userService.logout(token);
+                ctx.status(200).result("{}");
+            } catch (IllegalArgumentException | DataAccessException ex) {
+                ctx.status(401).json(error("Error: unauthorized"));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
         //listGames
         server.get("/game", ctx -> {});
         //createGame
@@ -67,10 +77,14 @@ public class Server {
         server.put("/game", ctx -> {});
     }
 
-    private void registerExceptionHandlers() {}
+    private void registerExceptionHandlers() {
+        server.exception(Exception.class, (e, ctx) -> {
+            ctx.status(500).json("Error: " + error(e.getMessage()));
+        });
+    }
 
     private Object error(String msg) {
-        return new Object() {public final String message = msg;};
+        return new Object() { @SuppressWarnings("unused") public final String message = msg;};
     }
 
     public int run(int desiredPort) {

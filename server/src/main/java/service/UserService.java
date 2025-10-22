@@ -52,4 +52,12 @@ public class UserService {
         dao.createAuth(new Auth(token, user.username()));
         return new LoginResult(request.username, token);
     }
+
+    public void logout(String authToken) throws DataAccessException, IllegalArgumentException {
+        if (authToken == null) throw new IllegalArgumentException("unauthorized");
+        var auth = dao.getAuth(authToken);
+        if (auth == null) throw new DataAccessException("unauthorized");
+        dao.deleteAuth(authToken);
+    }
+
 }
