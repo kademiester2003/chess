@@ -44,7 +44,19 @@ public class Server {
             }
         });
         //login
-        server.post("/session", ctx -> {});
+        server.post("/session", ctx -> {
+            try {
+                UserService.LoginRequest req = gson.fromJson(ctx.body(), UserService.LoginRequest.class);
+                var res = userService.login(req);
+                ctx.status(200).json(res);
+            } catch (IllegalArgumentException ex) {
+                ctx.status(400).json(error("Error: bad request"));
+            } catch (DataAccessException ex) {
+                ctx.status(401).json(error("Error: unauthorized"));
+            } catch (Exception ex) {
+                ctx.status(500).json(error("Error: " + ex.getMessage()));
+            }
+        });
         //logout
         server.delete("/session", ctx -> {});
         //listGames
