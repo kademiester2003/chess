@@ -1,9 +1,10 @@
 package service;
 
 import dataaccess.DataAccess;
-import datamodel.RegistrationResult;
-import datamodel.LoginResult;
-import datamodel.User;
+import model.RegistrationResult;
+import model.LoginResult;
+import model.ListGamesResult;
+import model.User;
 import java.util.UUID;
 
 public class UserService {
@@ -19,8 +20,15 @@ public class UserService {
     }
 
     public LoginResult login(User user) {
-        dataAccess.getUser(user.username());
-        String authToken = UUID.randomUUID().toString();
-        return new LoginResult(user.username(), authToken);
+        return null;
+    }
+
+    public ListGamesResult listGames(User user) {
+    }
+
+    public Object createGame(User req) {
+    }
+
+    public Object joinGame(User req) {
     }
 }

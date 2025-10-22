@@ -1,11 +1,14 @@
 package dataaccess;
 
-import datamodel.User;
+import model.Auth;
+import model.Game;
+import model.User;
 
 import java.util.HashMap;
 
 public class MemoryDataAccess implements DataAccess {
     private HashMap<String, User> users = new HashMap<>();
+
     @Override
     public void saveUser(User user) {
         users.put(user.username(), user);

@@ -3,12 +3,10 @@ package server;
 import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.MemoryDataAccess;
-import datamodel.User;
+import model.User;
 import io.javalin.*;
 import io.javalin.http.Context;
 import service.UserService;
-
-import java.util.Collection;
 
 
 public class Server {
@@ -21,9 +19,26 @@ public class Server {
         userService = new UserService(dataAccess);
         server = Javalin.create(config -> config.staticFiles.add("web"));
 
+        //clear (does not call clear)
         server.delete("db", ctx -> ctx.result( "{}"));
+
+        //register
         server.post("user", this::register);
+
+        //login
         server.post("session", this::login);
+
+        //logout (does not call logout)
+        server.delete("session", ctx -> ctx.result("{}"));
+
+        //listGames
+        server.get("game", this::listGames);
+
+        //createGame
+        server.post("game", this::createGame);
+
+        //joinGame
+        server.put("game", this::joinGame);
 
         // Register your endpoints and exception handlers here.
 
@@ -45,11 +60,26 @@ public class Server {
 
     private void logout(Context ctx) {}
 
-    private void listGames(Context ctx) {}
+    private void listGames(Context ctx) {
+        var serializer = new Gson();
+        var req = serializer.fromJson(ctx.body(), User.class);
+        var res = userService.listGames(req);
+        ctx.result(serializer.toJson(res));
+    }
 
-    private void createGame(Context ctx) {}
+    private void createGame(Context ctx) {
+        var serializer = new Gson();
+        var req = serializer.fromJson(ctx.body(), User.class);
+        var res = userService.createGame(req);
+        ctx.result(serializer.toJson(res));
+    }
 
-    private void joinGame(Context ctx) {}
+    private void joinGame(Context ctx) {
+        var serializer = new Gson();
+        var req = serializer.fromJson(ctx.body(), User.class);
+        var res = userService.joinGame(req);
+        ctx.result(serializer.toJson(res));
+    }
 
     private void clear(Context ctx) {}
 
