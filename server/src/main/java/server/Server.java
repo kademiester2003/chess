@@ -81,8 +81,7 @@ public class Server {
         server.get("/game", ctx -> {
             String token =  ctx.header("authorization");
             try {
-                GameService.ListGamesRequest req = gson.fromJson(ctx.body(), GameService.ListGamesRequest.class);
-                var res = gameService.listGames(req);
+                var res = gameService.listGames(token);
                 ctx.status(200).result(gson.toJson(res));
             } catch (IllegalArgumentException ex) {
                 ctx.status(401).json(error("Error: unauthorized"));

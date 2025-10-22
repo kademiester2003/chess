@@ -14,12 +14,11 @@ public class GameService {
         this.dao = dao;
     }
 
-    public record ListGamesRequest(String authToken) {}
     public record ListGamesResult(List<Game> games) {}
 
-    public ListGamesResult listGames(ListGamesRequest request) throws DataAccessException {
-        if (request.authToken() == null) throw new IllegalArgumentException("unauthorized");
-        Auth auth = dao.getAuth(request.authToken());
+    public ListGamesResult listGames(String authToken) throws DataAccessException {
+        if (authToken == null) throw new IllegalArgumentException("unauthorized");
+        Auth auth = dao.getAuth(authToken);
         if (auth == null) throw new IllegalArgumentException("unauthorized");
         var list = dao.listGames();
         return new ListGamesResult(list);
