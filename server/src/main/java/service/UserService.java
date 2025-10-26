@@ -22,7 +22,9 @@ public class UserService {
         }
 
         var existing = dao.getUser(request.username());
-        if (existing != null) throw new DataAccessException("already taken");
+        if (existing != null) {
+            throw new DataAccessException("already taken");
+        }
 
         User user = new User(request.username(), request.password(), request.email());
         dao.createUser(user);
@@ -45,8 +47,12 @@ public class UserService {
         }
 
         User user = dao.getUser(request.username);
-        if (user == null) throw new DataAccessException("unauthorized");
-        if (!user.password().equals(request.password)) throw new DataAccessException("unauthorized");
+        if (user == null) {
+            throw new DataAccessException("unauthorized");
+        }
+        if (!user.password().equals(request.password)) {
+            throw new DataAccessException("unauthorized");
+        }
 
         String token = generateToken();
         dao.createAuth(new Auth(token, user.username()));
@@ -54,9 +60,13 @@ public class UserService {
     }
 
     public void logout(String authToken) throws DataAccessException, IllegalArgumentException {
-        if (authToken == null) throw new IllegalArgumentException("unauthorized");
+        if (authToken == null) {
+            throw new IllegalArgumentException("unauthorized");
+        }
         var auth = dao.getAuth(authToken);
-        if (auth == null) throw new DataAccessException("unauthorized");
+        if (auth == null) {
+            throw new DataAccessException("unauthorized");
+        }
         dao.deleteAuth(authToken);
     }
 
