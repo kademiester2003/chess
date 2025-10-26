@@ -124,7 +124,9 @@ public class ChessPiece {
         Collection<ChessMove> moves = new ArrayList<>();
         for (int dRow = -1; dRow <= 1; dRow++) {
             for (int dCol = -1; dCol <= 1; dCol++) {
-                if (dRow == 0 && dCol == 0) continue;
+                if (dRow == 0 && dCol == 0) {
+                    continue;
+                }
                 addMoveIfValid(board, pos, pos.offset(dRow, dCol), moves);
             }
         }
@@ -150,7 +152,9 @@ public class ChessPiece {
         // Diagonal captures
         for (int dc : new int[]{-1, 1}) {
             ChessPosition diag = pos.offset(forward, dc);
-            if (!isInsideBoard(diag)) continue;
+            if (!isInsideBoard(diag)) {
+                continue;
+            }
             ChessPiece target = board.getPiece(diag);
             if (target != null && target.getTeamColor() != pieceColor) {
                 addPawnMove(pos, diag, moves);
@@ -176,7 +180,9 @@ public class ChessPiece {
      * Adds a move to the list if it’s within the board and not blocked by a same-color piece.
      */
     private void addMoveIfValid(ChessBoard board, ChessPosition start, ChessPosition end, Collection<ChessMove> moves) {
-        if (!isInsideBoard(end)) return;
+        if (!isInsideBoard(end)) {
+            return;
+        }
         ChessPiece target = board.getPiece(end);
         if (target == null || target.getTeamColor() != pieceColor) {
             moves.add(new ChessMove(start, end, null));
@@ -213,8 +219,9 @@ public class ChessPiece {
                 if (target == null) {
                     moves.add(new ChessMove(start, pos, null));
                 } else {
-                    if (target.getTeamColor() != pieceColor)
+                    if (target.getTeamColor() != pieceColor) {
                         moves.add(new ChessMove(start, pos, null));
+                    }
                     break;
                 }
                 row += dRow;
