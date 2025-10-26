@@ -10,8 +10,8 @@ import java.util.Objects;
  */
 public class ChessPosition {
 
-    private int row;
-    private int col;
+    private final int row;
+    private final int col;
 
     @Override
     public boolean equals(Object o) {
@@ -51,5 +51,14 @@ public class ChessPosition {
     @Override
     public String toString() {
         return String.format("%d,%d", row, col);
+    }
+
+    public ChessPosition offset(int dRow, int dCol) {
+        int newRow = row + dRow;
+        int newCol = col + dCol;
+        if (newRow < 1 || newRow > 8 || newCol < 1 || newCol > 8) {
+            return null;
+        }
+        return new ChessPosition(newRow, newCol);
     }
 }
