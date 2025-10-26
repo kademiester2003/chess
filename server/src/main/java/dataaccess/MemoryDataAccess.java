@@ -18,8 +18,12 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public void createUser(User user) throws DataAccessException {
-        if (user == null || user.username() == null) throw new DataAccessException("Null user");
-        if (users.containsKey(user.username())) throw new DataAccessException("User exists");
+        if (user == null || user.username() == null) {
+            throw new DataAccessException("Null user");
+        }
+        if (users.containsKey(user.username())) {
+            throw new DataAccessException("User exists");
+        }
         users.put(user.username(), user);
     }
 
@@ -31,7 +35,9 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public void createAuth(Auth auth) throws DataAccessException {
-        if (auth == null || auth.authToken() == null) throw new DataAccessException("Null auth");
+        if (auth == null || auth.authToken() == null) {
+            throw new DataAccessException("Null auth");
+        }
         auths.put(auth.authToken(), auth);
     }
 
@@ -65,7 +71,9 @@ public class MemoryDataAccess implements DataAccess {
 
     @Override
     public void updateGame(Game game) throws DataAccessException {
-        if (!games.containsKey(game.gameID())) throw new DataAccessException("Game not found");
+        if (!games.containsKey(game.gameID())) {
+            throw new DataAccessException("Game not found");
+        }
         games.put(game.gameID(), game);
     }
 
