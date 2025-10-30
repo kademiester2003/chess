@@ -33,8 +33,6 @@ public class MySQLDataAccessTests {
         dao.clear();
     }
 
-    // region clear()
-
     @Test
     @Order(1)
     @DisplayName("Clear Database - Positive")
@@ -44,10 +42,6 @@ public class MySQLDataAccessTests {
         dao.clear();
         assertNull(dao.getUser(TEST_USER.username()), "Database should be empty after clear()");
     }
-
-    // endregion
-
-    // region createUser()
 
     @Test
     @Order(2)
@@ -68,10 +62,6 @@ public class MySQLDataAccessTests {
                 "Creating a user with an existing username should throw");
     }
 
-    // endregion
-
-    // region getUser()
-
     @Test
     @Order(4)
     @DisplayName("Get User - Positive")
@@ -89,10 +79,6 @@ public class MySQLDataAccessTests {
         User found = dao.getUser("fakeUser");
         assertNull(found, "Nonexistent user should return null");
     }
-
-    // endregion
-
-    // region createAuth()
 
     @Test
     @Order(6)
@@ -118,10 +104,6 @@ public class MySQLDataAccessTests {
                 "Duplicate auth tokens should cause an error");
     }
 
-    // endregion
-
-    // region getAuth()
-
     @Test
     @Order(8)
     @DisplayName("Get Auth - Positive")
@@ -143,10 +125,6 @@ public class MySQLDataAccessTests {
         assertNull(found);
     }
 
-    // endregion
-
-    // region deleteAuth()
-
     @Test
     @Order(10)
     @DisplayName("Delete Auth - Positive")
@@ -163,13 +141,8 @@ public class MySQLDataAccessTests {
     @Order(11)
     @DisplayName("Delete Auth - Negative (nonexistent token)")
     void deleteAuthNegative() {
-        // Should not throw, but simply not delete anything
         assertDoesNotThrow(() -> dao.deleteAuth("ghostToken"));
     }
-
-    // endregion
-
-    // region createGame()
 
     @Test
     @Order(12)
@@ -191,27 +164,19 @@ public class MySQLDataAccessTests {
                 "Null game should throw DataAccessException");
     }
 
-    // endregion
-
-    // region getGame()
-
     @Test
     @Order(14)
     @DisplayName("Get Game - Positive")
     void getGamePositive() throws DataAccessException {
-        // Arrange: Create users first (foreign key requirement)
         dao.createUser(new User("whiteUser", "pass", "white@example.com"));
         dao.createUser(new User("blackUser", "pass", "black@example.com"));
 
-        // Create a game with those users
         ChessGame chessGame = new ChessGame();
         Game game = new Game(0, "whiteUser", "blackUser", "Test Game", chessGame);
         int gameId = dao.createGame(game);
 
-        // Act
         Game retrieved = dao.getGame(gameId);
 
-        // Assert
         assertNotNull(retrieved);
         assertEquals("whiteUser", retrieved.whiteUsername());
         assertEquals("blackUser", retrieved.blackUsername());
@@ -226,10 +191,6 @@ public class MySQLDataAccessTests {
         Game found = dao.getGame(99999);
         assertNull(found);
     }
-
-    // endregion
-
-    // region listGames()
 
     @Test
     @Order(16)
@@ -250,28 +211,20 @@ public class MySQLDataAccessTests {
         assertTrue(games.isEmpty());
     }
 
-    // endregion
-
-    // region updateGame()
-
     @Test
     @Order(18)
     @DisplayName("Update Game - Positive")
     void updateGamePositive() throws DataAccessException {
-        // Arrange: Create required users
         dao.createUser(new User("whiteUser", "pass", "white@example.com"));
         dao.createUser(new User("blackUser", "pass", "black@example.com"));
 
-        // Create initial game
         ChessGame chessGame = new ChessGame();
         Game game = new Game(0, "whiteUser", "blackUser", "Original Game", chessGame);
         int gameId = dao.createGame(game);
 
-        // Act: Update the game name
         Game updated = new Game(gameId, "whiteUser", "blackUser", "Updated Game", chessGame);
         dao.updateGame(updated);
 
-        // Assert: Verify update
         Game result = dao.getGame(gameId);
         assertNotNull(result);
         assertEquals("Updated Game", result.gameName());
@@ -284,5 +237,4 @@ public class MySQLDataAccessTests {
         assertThrows(DataAccessException.class, () -> dao.updateGame(fake));
     }
 
-    // endregion
 }
