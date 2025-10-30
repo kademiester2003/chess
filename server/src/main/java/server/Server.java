@@ -52,8 +52,13 @@ public class Server {
         }
     }
 
-    private void respondWithError(io.javalin.http.Context ctx, int status, String message) {
-        ctx.status(status).result(String.format("{\"Error\": \"%s\"}", message));
+    private void respondWithError(Context ctx, int status, String message) {
+        if (message == null || message.isBlank()) {
+            message = "Error: Unknown server error.";
+        } else if (!message.toLowerCase().contains("error")) {
+            message = "Error: " + message;
+        }
+        ctx.status(status).result(String.format("{\"message\": \"%s\"}", message));
     }
 
     private void handleDataAccessException(io.javalin.http.Context ctx, DataAccessException ex) {
