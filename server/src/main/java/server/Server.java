@@ -21,9 +21,8 @@ public class Server {
     public Server() {
         DataAccess tempDao;
         try {
-            MySQLDataAccess mysql = new MySQLDataAccess();
             //mysql.createTablesIfNotExist();
-            tempDao = mysql;
+            tempDao = new MySQLDataAccess();
         } catch (DataAccessException ex) {
             ex.printStackTrace();
             tempDao = new MemoryDataAccess();
@@ -54,7 +53,7 @@ public class Server {
     }
 
     private void respondWithError(io.javalin.http.Context ctx, int status, String message) {
-        ctx.status(status).result(String.format("{\"message\": \"%s\"}", message));
+        ctx.status(status).result(String.format("{\"Error\": \"%s\"}", message));
     }
 
     private void handleDataAccessException(io.javalin.http.Context ctx, DataAccessException ex) {
