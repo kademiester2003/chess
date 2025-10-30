@@ -1,10 +1,17 @@
 package dataaccess;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import model.Auth;
+import model.Game;
 import model.User;
 
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MySQLDataAccess implements DataAccess {
 
@@ -139,6 +146,129 @@ public class MySQLDataAccess implements DataAccess {
             ps.executeUpdate();
         } catch (SQLException ex) {
             throw new DataAccessException("failed to delete auth", ex);
+        }
+    }
+
+    @Override
+    public int createGame(Game game) throws DataAccessException {
+        final String sql = "INSERT INTO Games (whiteUsername, blackUsername, gameName, game) VALUES (?, ?, ?, ?)";
+        String json = null;
+        if (game.game() != null) {
+            json = gson.toJson(game.game());
+        }
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            if (game.whiteUsername() != null) {
+                ps.setString(1, game.whiteUsername());
+            } else {
+                ps.setNull(1, Types.VARCHAR);
+            }
+            if (game.blackUsername() != null) {
+                ps.setString(2, game.blackUsername());
+            } else {
+                ps.setNull(2, Types.VARCHAR);
+            }
+            ps.setString(3, game.gameName());
+            if (json != null) {
+                ps.setString(4, json);
+            } else {
+                ps.setNull(4, Types.LONGNVARCHAR);
+            }
+
+            ps.executeUpdate();
+            try (var result = ps.getGeneratedKeys()) {
+                if (result.next()) {
+                    return result.getInt(1);
+                } else {
+                    throw new DataAccessException("failed to retrieve game ID");
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to create game", ex);
+        }
+    }
+
+    @Override
+    public Game getGame(int gameID) throws DataAccessException {
+        final String sql = "SELECT gameID, whiteUsername, blackUsername, gameName, game FROM Games WHERE gameID = ?";
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, gameID);
+            try (var result = ps.executeQuery()) {
+                if (!result.next()) {
+                    return null;
+                }
+                ChessGame chessGame = null;
+                String json = result.getString("game");
+                if (json != null) {
+                    try {
+                        chessGame = gson.fromJson(json, ChessGame.class);
+                    } catch (JsonSyntaxException ex) {}
+                }
+                return new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame);
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to get game", ex);
+        }
+    }
+
+    @Override
+    public List<Game> listGames() throws DataAccessException {
+        final String sql = "SELECT gameID, whiteUsername, blackUsername, gameName, game FROM Games";
+        List<Game> games = new ArrayList<>();
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql);
+             var result = ps.executeQuery()) {
+
+            while (result.next()) {
+                ChessGame chessGame = null;
+                String json = result.getString("game");
+                if (json != null) {
+                    try {
+                        chessGame = gson.fromJson(json, ChessGame.class);
+                    } catch (JsonSyntaxException ex) {}
+                }
+                games.add(new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame);
+            }
+            return games;
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to get game", ex);
+        }
+    }
+
+    @Override
+    public void updateGame(Game game) throws DataAccessException {
+        final String sql = "UPDATE Games SET whiteUsername = ?, blackUsername = ?, gameName = ? WHERE gameID = ?";
+        String json = null;
+        if (game.game() != null) {
+            json = gson.toJson(game.game());
+        }
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql)) {
+            if (game.whiteUsername() != null) {
+                ps.setString(1, game.whiteUsername());
+            } else {
+                ps.setNull(1, Types.VARCHAR);
+            }
+            if (game.blackUsername() != null) {
+                ps.setString(2, game.blackUsername());
+            } else {
+                ps.setNull(2, Types.VARCHAR);
+            }
+            ps.setString(3, game.gameName());
+            if (json != null) {
+                ps.setString(4, json);
+            } else {
+                ps.setNull(4, Types.LONGNVARCHAR);
+            }
+            ps.setInt(5, game.gameID());
+
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DataAccessException("game not found");
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to update game", ex);
         }
     }
 }
