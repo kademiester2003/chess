@@ -1,6 +1,7 @@
 package dataaccess;
 
 import com.google.gson.Gson;
+import model.Auth;
 import model.User;
 
 import java.sql.SQLException;
@@ -94,10 +95,50 @@ public class MySQLDataAccess implements DataAccess {
                     return null;
                 }
                 return new User(result.getString("username"), result.getString("password"), result.getString("email"));
-            } catch (SQLException ex) {
-                throw new DataAccessException("failed to get user", ex);
             }
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to get user", ex);
         }
     }
 
+    public void createAuth(Auth auth) throws DataAccessException {
+        final String sql = "INSERT INTO Auths (authToken, username) VALUES (?, ?)";
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql)) {
+            ps.setString(1, auth.authToken());
+            ps.setString(2, auth.username());
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to create auth", ex);
+        }
+    }
+
+    @Override
+    public Auth getAuth(String authToken) throws DataAccessException {
+        final String sql = "SELECT authToken, username FROM users WHERE authToken = ?";
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql)) {
+            ps.setString(1, authToken);
+            try (var result = ps.executeQuery()) {
+                if (!result.next()) {
+                    return null;
+                }
+                return new Auth(result.getString("authToken"), result.getString("username"));
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to get auth", ex);
+        }
+    }
+
+    @Override
+    public void deleteAuth(String authToken) throws DataAccessException {
+        final String sql = "DELETE FROM Auths WHERE authToken = ?";
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(sql)) {
+            ps.setString(1, authToken);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            throw new DataAccessException("failed to delete auth", ex);
+        }
+    }
 }
