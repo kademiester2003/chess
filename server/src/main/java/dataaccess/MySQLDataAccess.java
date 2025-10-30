@@ -151,6 +151,9 @@ public class MySQLDataAccess implements DataAccess {
     public int createGame(Game game) throws DataAccessException {
         final String sql = "INSERT INTO Games (whiteUsername, blackUsername, gameName, game) VALUES (?, ?, ?, ?)";
         String json = null;
+        if (game == null) {
+            throw new DataAccessException("Game cannot be null");
+        }
         if (game.game() != null) {
             json = gson.toJson(game.game());
         }
