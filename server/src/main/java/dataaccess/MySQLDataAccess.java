@@ -7,9 +7,7 @@ import model.Auth;
 import model.Game;
 import model.User;
 
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +15,9 @@ public class MySQLDataAccess implements DataAccess {
 
     private final Gson gson = new Gson();
 
-    public MySQLDataAccess() {}
+    public MySQLDataAccess() throws DataAccessException {
+        configureDatabase();
+    }
 
     public void createTablesIfNotExist() throws DataAccessException {
         final String usersSql = """
@@ -158,7 +158,7 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public Auth getAuth(String authToken) throws DataAccessException {
-        final String sql = "SELECT authToken, username FROM users WHERE authToken = ?";
+        final String sql = "SELECT authToken, username FROM Auths WHERE authToken = ?";
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(sql)) {
             ps.setString(1, authToken);
