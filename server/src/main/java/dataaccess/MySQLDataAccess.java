@@ -19,46 +19,6 @@ public class MySQLDataAccess implements DataAccess {
         configureDatabase();
     }
 
-    public void createTablesIfNotExist() throws DataAccessException {
-        final String usersSql = """
-                CREATE TABLE IF NOT EXISTS users (
-                  username VARCHAR(100) NOT NULL PRIMARY KEY,
-                  password VARCHAR(255) NOT NULL,
-                  email VARCHAR(255) NOT NULL
-                )
-                """;
-
-        final String authsSql = """
-            CREATE TABLE IF NOT EXISTS Auths (
-              authToken VARCHAR(255) NOT NULL PRIMARY KEY,
-              username VARCHAR(100) NOT NULL,
-              FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
-            )
-            """;
-
-        final String gamesSql = """
-            CREATE TABLE IF NOT EXISTS Games (
-              gameID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-              whiteUsername VARCHAR(100),
-              blackUsername VARCHAR(100),
-              gameName VARCHAR(255) NOT NULL,
-              game TEXT,
-              FOREIGN KEY (whiteUsername) REFERENCES Users(username),
-              FOREIGN KEY (blackUsername) REFERENCES Users(username)
-            )
-            """;
-
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var statement = conn.createStatement()) {
-                statement.executeUpdate(usersSql);
-                statement.executeUpdate(authsSql);
-                statement.executeUpdate(gamesSql);
-            }
-        } catch (SQLException ex) {
-            throw new DataAccessException("failed to create tables", ex);
-        }
-    }
-
     public void configureDatabase() throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
             try (var stmt = conn.createStatement()) {
@@ -137,7 +97,9 @@ public class MySQLDataAccess implements DataAccess {
                 if (!result.next()) {
                     return null;
                 }
-                return new User(result.getString("username"), result.getString("password"), result.getString("email"));
+                return new User(result.getString("username"),
+                                result.getString("password"),
+                                result.getString("email"));
             }
         } catch (SQLException ex) {
             throw new DataAccessException("failed to get user", ex);
@@ -194,22 +156,7 @@ public class MySQLDataAccess implements DataAccess {
         }
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            if (game.whiteUsername() != null) {
-                ps.setString(1, game.whiteUsername());
-            } else {
-                ps.setNull(1, Types.VARCHAR);
-            }
-            if (game.blackUsername() != null) {
-                ps.setString(2, game.blackUsername());
-            } else {
-                ps.setNull(2, Types.VARCHAR);
-            }
-            ps.setString(3, game.gameName());
-            if (json != null) {
-                ps.setString(4, json);
-            } else {
-                ps.setNull(4, Types.LONGNVARCHAR);
-            }
+            putDataInSQL(game, json, ps);
 
             ps.executeUpdate();
             try (var result = ps.getGeneratedKeys()) {
@@ -221,6 +168,25 @@ public class MySQLDataAccess implements DataAccess {
             }
         } catch (SQLException ex) {
             throw new DataAccessException("failed to create game", ex);
+        }
+    }
+
+    private void putDataInSQL(Game game, String json, PreparedStatement ps) throws SQLException {
+        if (game.whiteUsername() != null) {
+            ps.setString(1, game.whiteUsername());
+        } else {
+            ps.setNull(1, Types.VARCHAR);
+        }
+        if (game.blackUsername() != null) {
+            ps.setString(2, game.blackUsername());
+        } else {
+            ps.setNull(2, Types.VARCHAR);
+        }
+        ps.setString(3, game.gameName());
+        if (json != null) {
+            ps.setString(4, json);
+        } else {
+            ps.setNull(4, Types.LONGNVARCHAR);
         }
     }
 
@@ -241,7 +207,11 @@ public class MySQLDataAccess implements DataAccess {
                         chessGame = gson.fromJson(json, ChessGame.class);
                     } catch (JsonSyntaxException ex) {}
                 }
-                return new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame);
+                return new Game(result.getInt("gameID"),
+                                result.getString("whiteUsername"),
+                                result.getString("blackUsername"),
+                                result.getString("gameName"),
+                                chessGame);
             }
         } catch (SQLException ex) {
             throw new DataAccessException("failed to get game", ex);
@@ -264,7 +234,11 @@ public class MySQLDataAccess implements DataAccess {
                         chessGame = gson.fromJson(json, ChessGame.class);
                     } catch (JsonSyntaxException ex) {}
                 }
-                games.add(new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame));
+                games.add(new Game(result.getInt("gameID"),
+                                    result.getString("whiteUsername"),
+                                    result.getString("blackUsername"),
+                                    result.getString("gameName"),
+                                    chessGame));
             }
             return games;
         } catch (SQLException ex) {
@@ -274,29 +248,15 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public void updateGame(Game game) throws DataAccessException {
-        final String sql = "UPDATE Games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?";
+        final String sql = "UPDATE Games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? " +
+                           "WHERE gameID = ?";
         String json = null;
         if (game.game() != null) {
             json = gson.toJson(game.game());
         }
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(sql)) {
-            if (game.whiteUsername() != null) {
-                ps.setString(1, game.whiteUsername());
-            } else {
-                ps.setNull(1, Types.VARCHAR);
-            }
-            if (game.blackUsername() != null) {
-                ps.setString(2, game.blackUsername());
-            } else {
-                ps.setNull(2, Types.VARCHAR);
-            }
-            ps.setString(3, game.gameName());
-            if (json != null) {
-                ps.setString(4, json);
-            } else {
-                ps.setNull(4, Types.LONGNVARCHAR);
-            }
+            putDataInSQL(game, json, ps);
             ps.setInt(5, game.gameID());
 
             int affected = ps.executeUpdate();
