@@ -274,7 +274,7 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public void updateGame(Game game) throws DataAccessException {
-        final String sql = "UPDATE Games SET whiteUsername = ?, blackUsername = ?, gameName = ? WHERE gameID = ?";
+        final String sql = "UPDATE Games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?";
         String json = null;
         if (game.game() != null) {
             json = gson.toJson(game.game());
