@@ -61,10 +61,6 @@ public class Server {
         void run() throws Exception;
     }
 
-    private void clear() {
-
-    }
-
     private void registerEndpoints() {
         // clear
         server.delete("/db", ctx -> {
