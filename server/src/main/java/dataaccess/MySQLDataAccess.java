@@ -59,6 +59,42 @@ public class MySQLDataAccess implements DataAccess {
         }
     }
 
+    public void configureDatabase() throws DataAccessException {
+        try (var conn = DatabaseManager.getConnection()) {
+            try (var stmt = conn.createStatement()) {
+                // Example users table
+                stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS users (
+                    username VARCHAR(50) PRIMARY KEY,
+                    passwordHash VARCHAR(255) NOT NULL,
+                    email VARCHAR(255)
+                )
+            """);
+
+                // Example games table
+                stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS games (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    gameName VARCHAR(100) NOT NULL,
+                    whiteUsername VARCHAR(50),
+                    blackUsername VARCHAR(50),
+                    gameState JSON
+                )
+            """);
+
+                // Example auth tokens table
+                stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS auth (
+                    authToken VARCHAR(100) PRIMARY KEY,
+                    username VARCHAR(50) NOT NULL
+                )
+            """);
+            }
+        } catch (SQLException ex) {
+            throw new DataAccessException("Failed to configure database", ex);
+        }
+    }
+
     @Override
     public void clear() throws DataAccessException {
         try (var conn = DatabaseManager.getConnection();

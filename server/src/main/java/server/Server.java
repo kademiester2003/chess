@@ -1,9 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
-import dataaccess.DataAccess;
-import dataaccess.DataAccessException;
-import dataaccess.MemoryDataAccess;
+import dataaccess.*;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import service.UserService;
@@ -18,7 +16,17 @@ public class Server {
     private final Gson gson = new Gson();
 
     public Server() {
-        this.dao =  new MemoryDataAccess();
+        MySQLDataAccess dao1;
+        try {
+            DatabaseManager.createDatabase();
+            dao1 = new MySQLDataAccess();
+            dao1.configureDatabase();
+        } catch (Exception ex) {
+            System.err.println("SQL initialization failed. Using MemoryDataAccess.");
+            ex.printStackTrace();
+            dao1 = new MySQLDataAccess();
+        }
+        dao = dao1;
         this.userService = new UserService(dao);
         this.gameService = new GameService(dao);
 
