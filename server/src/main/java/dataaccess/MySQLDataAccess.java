@@ -228,7 +228,7 @@ public class MySQLDataAccess implements DataAccess {
                         chessGame = gson.fromJson(json, ChessGame.class);
                     } catch (JsonSyntaxException ex) {}
                 }
-                games.add(new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame);
+                games.add(new Game(result.getInt("gameID"), result.getString("whiteUsername"), result.getString("blackUsername"), result.getString("gameName"), chessGame));
             }
             return games;
         } catch (SQLException ex) {
