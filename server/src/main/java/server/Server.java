@@ -21,13 +21,12 @@ public class Server {
     public Server() {
         DataAccess tempDao;
         try {
-            //mysql.createTablesIfNotExist();
             tempDao = new MySQLDataAccess();
         } catch (DataAccessException ex) {
             ex.printStackTrace();
             tempDao = new MemoryDataAccess();
         }
-        this.dao =  tempDao;
+        this.dao = tempDao;
         this.userService = new UserService(dao);
         this.gameService = new GameService(dao);
 

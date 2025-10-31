@@ -31,7 +31,7 @@ public class MySQLDataAccess implements DataAccess {
     private void initialize() throws SQLException {
         try (Connection conn = DatabaseManager.getConnection()) {
             createTables(conn);
-        } catch (SQLException | DataAccessException ex) {}
+        } catch (SQLException | DataAccessException ex) { ex.printStackTrace(); }
     }
 
     private void createTables(Connection conn) throws SQLException {
@@ -113,7 +113,7 @@ public class MySQLDataAccess implements DataAccess {
                                 result.getString("email"));
             }
         } catch (SQLException ex) {
-            throw new DataAccessException("failed to get user", ex);
+            throw new DataAccessException("failed to get user" + ex.getMessage(), ex);
         }
     }
 
@@ -281,4 +281,6 @@ public class MySQLDataAccess implements DataAccess {
             throw new DataAccessException("failed to update game", ex);
         }
     }
+
 }
+
