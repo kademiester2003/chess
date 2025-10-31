@@ -17,21 +17,18 @@ public class MySQLDataAccess implements DataAccess {
 
     public MySQLDataAccess() throws DataAccessException {
         try {
+            DatabaseManager.createDatabase();
             initialize();
-        } catch (SQLException e) {
-            try {
-                DatabaseManager.createDatabase();
-                initialize();
-            } catch (SQLException inner) {
-                throw new DataAccessException("Failed to initialize database", inner);
-            }
+        } catch (DataAccessException | SQLException ex) {
+            throw new DataAccessException("Failed to initialize database");
         }
+
     }
 
     private void initialize() throws SQLException {
         try (Connection conn = DatabaseManager.getConnection()) {
             createTables(conn);
-        } catch (SQLException | DataAccessException ex) { ex.printStackTrace(); }
+        } catch (SQLException | DataAccessException ex) { }
     }
 
     private void createTables(Connection conn) throws SQLException {
