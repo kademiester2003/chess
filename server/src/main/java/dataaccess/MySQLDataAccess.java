@@ -16,42 +16,56 @@ public class MySQLDataAccess implements DataAccess {
     private final Gson gson = new Gson();
 
     public MySQLDataAccess() throws DataAccessException {
-        configureDatabase();
+        try {
+            initialize();
+        } catch (SQLException e) {
+            try {
+                DatabaseManager.createDatabase();
+                initialize();
+            } catch (SQLException inner) {
+                throw new DataAccessException("Failed to initialize database", inner);
+            }
+        }
     }
 
-    public void configureDatabase() throws DataAccessException {
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var stmt = conn.createStatement()) {
-                // Example users table
-                stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS users (
-                    username VARCHAR(50) PRIMARY KEY,
-                    passwordHash VARCHAR(255) NOT NULL,
-                    email VARCHAR(255)
+    private void initialize() throws SQLException {
+        try (Connection conn = DatabaseManager.getConnection()) {
+            createTables(conn);
+        } catch (SQLException | DataAccessException ex) {}
+    }
+
+    private void createTables(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            // user table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS Users (
+                    username VARCHAR(255) PRIMARY KEY,
+                    password VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) NOT NULL
                 )
             """);
 
-                // Example games table
-                stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS games (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    gameName VARCHAR(100) NOT NULL,
-                    whiteUsername VARCHAR(50),
-                    blackUsername VARCHAR(50),
-                    gameState JSON
+            // auth table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS Auths (
+                    authToken VARCHAR(255) PRIMARY KEY,
+                    username VARCHAR(255) NOT NULL,
+                    FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
                 )
             """);
 
-                // Example auth tokens table
-                stmt.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS auth (
-                    authToken VARCHAR(100) PRIMARY KEY,
-                    username VARCHAR(50) NOT NULL
+            // game table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS Games (
+                    gameID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    whiteUsername VARCHAR(255),
+                    blackUsername VARCHAR(255),
+                    gameName VARCHAR(255) NOT NULL,
+                    game TEXT,
+                    FOREIGN KEY (whiteUsername) REFERENCES Users(username) ON DELETE SET NULL,
+                    FOREIGN KEY (blackUsername) REFERENCES Users(username) ON DELETE SET NULL
                 )
             """);
-            }
-        } catch (SQLException ex) {
-            throw new DataAccessException("Failed to configure database", ex);
         }
     }
 
@@ -69,9 +83,6 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public void createUser(User user) throws DataAccessException {
-        if (user == null) {
-            throw new DataAccessException("null user");
-        }
         final String sql = "INSERT INTO Users (username, password, email) VALUES (?, ?, ?)";
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(sql)) {
@@ -89,7 +100,7 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public User getUser(String username) throws DataAccessException {
-        final String sql = "SELECT username, password, email FROM users WHERE username = ?";
+        final String sql = "SELECT username, password, email FROM Users WHERE username = ?";
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -149,11 +160,11 @@ public class MySQLDataAccess implements DataAccess {
 
     @Override
     public int createGame(Game game) throws DataAccessException {
+        if (game == null) {
+            throw new DataAccessException("Game is null");
+        }
         final String sql = "INSERT INTO Games (whiteUsername, blackUsername, gameName, game) VALUES (?, ?, ?, ?)";
         String json = null;
-        if (game == null) {
-            throw new DataAccessException("Game cannot be null");
-        }
         if (game.game() != null) {
             json = gson.toJson(game.game());
         }
