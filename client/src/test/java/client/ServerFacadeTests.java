@@ -125,4 +125,29 @@ public class ServerFacadeTests {
 
         assertNotNull(res.message);
     }
+
+    @Test
+    public void createGamePositive() throws Exception {
+        var reg = facade.register(newReq("kate"));
+        var req = new ServerFacade.CreateGameRequest("CoolGame");
+        var res = facade.createGame(req, reg.authToken);
+
+        assertNotNull(res.gameID);
+    }
+
+    @Test
+    public void createGameNegative_invalidToken() throws Exception {
+        var req = new ServerFacade.CreateGameRequest("FailGame");
+        var res = facade.createGame(req, "bad-token");
+
+        assertNotNull(res.message);
+    }
+
+    private ServerFacade.RegisterRequest newReq(String user) {
+        var req = new ServerFacade.RegisterRequest();
+        req.username = user;
+        req.password = "pw";
+        req.email = user + "@mail.com";
+        return req;
+    }
 }
