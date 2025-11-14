@@ -143,6 +143,64 @@ public class ServerFacadeTests {
         assertNotNull(res.message);
     }
 
+    @Test
+    public void listGamesPositive() throws Exception {
+        // register a user
+        var reg = facade.register(newReq("tom"));
+
+        // create two games
+        var create1 = facade.createGame(new ServerFacade.CreateGameRequest("One"), reg.authToken);
+        var create2 = facade.createGame(new ServerFacade.CreateGameRequest("Two"), reg.authToken);
+
+        // list games
+        var res = facade.listGames(reg.authToken);
+
+        // basic checks
+        assertNotNull(res.games);
+        assertTrue(res.games.length >= 2, "Expected at least two games");
+
+        // verify that our games appear in the returned array
+        boolean foundOne = false;
+        boolean foundTwo = false;
+        for (var g : res.games) {
+            if (g.gameName != null && g.gameName.equals("One")) foundOne = true;
+            if (g.gameName != null && g.gameName.equals("Two")) foundTwo = true;
+        }
+
+        assertTrue(foundOne, "Game named 'One' was not found in listGames result");
+        assertTrue(foundTwo, "Game named 'Two' was not found in listGames result");
+    }
+
+    @Test
+    public void listGamesNegative_invalidToken() throws Exception {
+        var res = facade.listGames("bad-token");
+        assertNotNull(res.message);
+    }
+
+    @Test
+    public void joinGamePositive() throws Exception {
+        var reg = facade.register(newReq("zoe"));
+
+        // Create a game to join
+        var create = facade.createGame(new ServerFacade.CreateGameRequest("JoinMe"), reg.authToken);
+
+        var req = new ServerFacade.JoinGameRequest("WHITE", create.gameID);  // <-- FIXED ORDER
+        var res = facade.joinGame(req, reg.authToken);
+
+        assertNull(res.message);  // "{}" on success
+    }
+
+    @Test
+    public void joinGameNegative_invalidColor() throws Exception {
+        var reg = facade.register(newReq("bob2"));
+        var create = facade.createGame(new ServerFacade.CreateGameRequest("BadJoin"), reg.authToken);
+
+        var req = new ServerFacade.JoinGameRequest("PURPLE", create.gameID);  // bad color
+        var res = facade.joinGame(req, reg.authToken);
+
+        assertNotNull(res.message);
+    }
+
     private ServerFacade.RegisterRequest newReq(String user) {
         var req = new ServerFacade.RegisterRequest();
         req.username = user;
