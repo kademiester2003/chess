@@ -95,7 +95,142 @@ public class ConsoleClient {
         }
     }
 
-    private void postloginLoop() throws IOException {}
+    private void postloginLoop() throws IOException {
+        System.out.println("\npostlogin> (type 'help' for commands)");
+        String line = prompt("> ");
+        if (line == null) {return;}
+        switch (line.trim().toLowerCase(Locale.ROOT)) {
+            case "help" -> showPostloginHelp();
+            case "logout" -> doLogout();
+            case "create" -> doCreateGame();
+            case "list" -> doListGames();
+            case "play" -> doPlayGame();
+            case "observe" -> doObserveGame();
+            case "quit", "exit" -> {
+                doLogout();
+                System.out.println("Goodbye.");
+                System.exit(0);
+            }
+            default -> System.out.println("Unknown command. Type 'help' for options.");
+        }
+    }
+
+    private void showPostloginHelp() {
+        System.out.println("""
+                Postlogin commands:
+                  help      - show this message
+                  list      - list games on server
+                  create    - create a new game (does NOT join)
+                  play      - join a game and draw board (no gameplay yet)
+                  observe   - observe a game (draw board)
+                  logout    - log out
+                  quit/exit - logout and exit
+        """);
+    }
+
+    private void doLogout() throws IOException {
+        try {
+            if (authToken == null) {
+                System.out.println("Not logged in.");
+                return;
+            }
+            GenericResponse r = facade.logout(authToken);
+            System.out.println(r != null && r.message != null ? r.message : "Logged out.");
+        }  catch (Exception ex) {
+            System.out.println("Error logging out: " + ex.getMessage());
+        } finally {
+            authToken = null;
+            loggedInUser = null;
+            lastGames.clear();
+        }
+    }
+
+    private void doCreateGame() throws IOException {
+        try {
+            String name = promptNonEmpty("Game name: ");
+            CreateGameResponse r = facade.createGame(name, authToken);
+            if (r.gameID > 0) {
+                System.out.println("Game created.");
+            } else {
+                System.out.println("Create failed: " + (r.message == null ? "unknown" : r.message));
+            }
+        } catch (Exception ex) {
+            System.out.println("Error creating game: " + ex.getMessage());
+        }
+    }
+
+    private void doListGames() throws IOException {
+        try {
+            List<GameEntry> games = facade.listGames(authToken);
+            lastGames = new ArrayList<>(games);
+            if (games.isEmpty()) {
+                System.out.println("No games found.");
+                return;
+            }
+            System.out.println("Games:");
+            for (int i = 0; i < games.size(); i++) {
+                GameEntry g = games.get(i);
+                String players = String.format("%s vs %s", g.whiteUsername == null ? "<empty>" : g.whiteUsername, g.blackUsername == null ? "<empty>" : g.blackUsername);
+                System.out.printf("  %d) %s - %s%n", i + 1, g.gameName, players);
+            }
+        } catch (Exception ex) {
+            System.out.println("Error listing games: " + ex.getMessage());
+        }
+    }
+
+    private void doPlayGame() throws IOException {
+        try {
+            if (lastGames.isEmpty()) {
+                System.out.println("No recent game list. Use 'list' first.");
+                return;
+            }
+            String idxStr = promptNonEmpty("Enter game number to join (from last 'list'): ");
+            int idx = Integer.parseInt(idxStr);
+            if (idx < 1 || idx > lastGames.size()) {
+                System.out.println("Invalid number.");
+                return;
+            }
+            GameEntry chosen = lastGames.get(idx - 1);
+            String color = promptNonEmpty("Which color do you want to play? (white/black): ").trim().toLowerCase(Locale.ROOT);
+            String team = switch(color) {
+                case "white", "w" -> "WHITE";
+                case "black", "b" -> "BLACK";
+                default -> { System.out.println("Unknown color - using white by default."); yield "WHITE"; }
+            };
+
+            GenericResponse r = facade.joinGame(team, chosen.gameID, authToken);
+            System.out.println(r != null && r.message != null ? r.message : "Joined (server did not return a message).");
+
+            boolean drawWhitePerspective = !team.equals("BLACK");
+            BoardDrawer.drawInitialBoard(drawWhitePerspective);
+        } catch (NumberFormatException nf) {
+            System.out.println("Please enter a valid number.");
+        } catch (Exception ex) {
+            System.out.println("Error joining game: " + ex.getMessage());
+        }
+    }
+
+    private void doObserveGame() throws IOException {
+        try {
+            if (lastGames.isEmpty()) {
+                System.out.println("No recent game list. Use 'list' first.");
+                return;
+            }
+            String idxStr = promptNonEmpty("Enter game number to observe (from last 'list'): ");
+            int idx = Integer.parseInt(idxStr);
+            if (idx < 1 || idx > lastGames.size()) {
+                System.out.println("Invalid number.");
+                return;
+            }
+            GameEntry chosen = lastGames.get(idx - 1);
+            System.out.println("Observing: " +  chosen.gameName + " (" + (chosen.whiteUsername == null ? "<empty>" : chosen.whiteUsername) + " vs " + (chosen.blackUsername == null ? "<empty>" : chosen.blackUsername) + ")");
+            BoardDrawer.drawinitialBoard(true);
+        } catch (NumberFormatException nf) {
+            System.out.println("Please enter a valid number.");
+        } catch (Exception ex) {
+            System.out.println("Error observing game: " + ex.getMessage());
+        }
+    }
 
     private String prompt(String prompt) throws IOException {
         System.out.print(prompt);
@@ -106,7 +241,7 @@ public class ConsoleClient {
         String s = null;
         while (s == null || s.trim().isEmpty()) {
             s = prompt(prompt);
-            if (s == null) {throw new IOException("Input closed")}
+            if (s == null) {throw new IOException("Input closed");}
         }
         return s.trim();
     }
