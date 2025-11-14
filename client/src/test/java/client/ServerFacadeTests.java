@@ -104,4 +104,25 @@ public class ServerFacadeTests {
         assertNull(res.authToken);
         assertNotNull(res.message);
     }
+
+    @Test
+    public void logoutPositive() throws Exception {
+        var req = new ServerFacade.RegisterRequest();
+        req.username = "jen";
+        req.password = "pw";
+        req.email = "j@mail.com";
+
+        var reg = facade.register(req);
+
+        var res = facade.logout(reg.authToken);
+
+        assertNull(res.message);   // 200 OK produces "{}"
+    }
+
+    @Test
+    public void logoutNegative_invalidToken() throws Exception {
+        var res = facade.logout("bad-token");
+
+        assertNotNull(res.message);
+    }
 }
