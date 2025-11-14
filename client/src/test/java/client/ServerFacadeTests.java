@@ -66,4 +66,42 @@ public class ServerFacadeTests {
         assertNull(res2.authToken);
         assertNotNull(res2.message);
     }
+
+    @Test
+    public void loginPositive() throws Exception {
+        var req = new ServerFacade.RegisterRequest();
+        req.username = "mike";
+        req.password = "secret";
+        req.email = "m@mail.com";
+
+        facade.register(req);
+
+        var login = new ServerFacade.LoginRequest();
+        login.username = "mike";
+        login.password = "secret";
+
+        var res = facade.login(login);
+
+        assertNotNull(res.authToken);
+        assertEquals("mike", res.username);
+    }
+
+    @Test
+    public void loginNegative_wrongPassword() throws Exception {
+        var req = new ServerFacade.RegisterRequest();
+        req.username = "sam";
+        req.password = "goodpw";
+        req.email = "s@mail.com";
+
+        facade.register(req);
+
+        var login = new ServerFacade.LoginRequest();
+        login.username = "sam";
+        login.password = "badpw";
+
+        var res = facade.login(login);
+
+        assertNull(res.authToken);
+        assertNotNull(res.message);
+    }
 }
