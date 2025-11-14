@@ -16,7 +16,8 @@ public class ServerFacade {
     public static class RegisterRequest {public String username; public String password; public String email;}
     public static class LoginRequest {public String username; public String password;}
     public static class CreateGameRequest {public String gameName; public CreateGameRequest(String gameName) { this.gameName = gameName;}}
-    public static class JoinGameRequest {public String team; public int gameID; public JoinGameRequest(String team, int gameID) { this.team = team; this.gameID = gameID;}}
+    public static class JoinGameRequest {public String team; public int gameID;
+        public JoinGameRequest(String team, int gameID) { this.team = team; this.gameID = gameID;}}
 
     public static class RegisterResponse {public String authToken; public String username; public String message;}
     public static class LoginResponse {public String authToken; public String username; public String message;}
