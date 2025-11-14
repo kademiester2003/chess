@@ -5,8 +5,12 @@ import ui.EscapeSequences;
 
 public class BoardDrawer {
 
+    public static void drawInitialBoard(ChessGame.TeamColor perspective) {
+        drawBoard(new ChessGame(), perspective);
+    }
+
     public static void drawBoard(ChessGame game, ChessGame.TeamColor perspective) {
-        System.out.print(EscapeSequences.ERASE_SCREEN);
+        System.out.print(EscapeSequences.ERASE_SCREEN + EscapeSequences.moveCursorToLocation(1,1));
 
         ChessBoard board = game.getBoard();
 

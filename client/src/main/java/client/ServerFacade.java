@@ -1,22 +1,15 @@
 package client;
 
 import com.google.gson.Gson;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.List;
+import java.io.*;
+import java.net.*;
 
 public class ServerFacade {
-    private final String baseUrl;
-    private final HttpClient http;
+    private final String serverUrl;
     private final Gson gson = new Gson();
 
-    public ServerFacade(String baseUrl, int port) {
-        this.baseUrl = String.format("http://%s:%d/", baseUrl, port);
-        this.http = HttpClient.newHttpClient();
+    public ServerFacade(String host, String port) {
+        this.serverUrl = "http://" + host + ":" + port;
     }
 
     //data classes interface
@@ -25,152 +18,94 @@ public class ServerFacade {
     public static class CreateGameRequest {public String gameName; public CreateGameRequest(String gameName) { this.gameName = gameName;}}
     public static class JoinGameRequest {public String team; public int gameID; public JoinGameRequest(String team, int gameID) { this.team = team; this.gameID = gameID;}}
 
-    public static class RegisterResponse {public String authToken; public String username;}
-    public static class LoginResponse {public String authToken; public String username;}
+    public static class RegisterResponse {public String authToken; public String username; public String message;}
+    public static class LoginResponse {public String authToken; public String username; public String message;}
+    public static class LogoutResponse {public String message;}
     public static class CreateGameResponse {public int gameID; public String message;}
-    public static class GenericResponse {public String message;}
+    public static class JoinGameResponse {public String message;}
     public static class GameEntry {public int gameID; public String whiteUsername; public String blackUsername; public String gameName;}
-    public static class ListGamesResponse {public GameEntry[] games;}
+    public static class ListGamesResponse {public GameEntry[] games; public String message;}
 
 
-    private HttpResponse<String> doPost(String path, String json, String authToken) throws IOException, InterruptedException {
-        var builder = HttpRequest.newBuilder(URI.create(baseUrl + path)).POST(HttpRequest.BodyPublishers.ofString(json)).header("Content-Type", "application/json");
+    public RegisterResponse register(RegisterRequest request) throws IOException {
+        HttpURLConnection connection = makeRequest("POST", "/user", request, null);
+        return readResponse(connection, RegisterResponse.class);
+    }
+
+    public LoginResponse login(LoginRequest request) throws IOException {
+        HttpURLConnection connection = makeRequest("POST", "/session", request, null);
+        return readResponse(connection, LoginResponse.class);
+    }
+
+   public LogoutResponse logout(String authToken) throws IOException {
+        HttpURLConnection connection = makeRequest("DELETE", "/session", null, authToken);
+        return readResponse(connection, LogoutResponse.class);
+    }
+
+    public CreateGameResponse createGame(CreateGameRequest request, String authToken) throws IOException {
+        HttpURLConnection connection = makeRequest("POST", "/game", request, authToken);
+        return readResponse(connection, CreateGameResponse.class);
+    }
+
+    public ListGamesResponse listGames(String authToken) throws IOException {
+        HttpURLConnection connection = makeRequest("GET", "/game", null, authToken);
+        return readResponse(connection, ListGamesResponse.class);
+    }
+
+    public JoinGameResponse joinGame(JoinGameRequest request, String authToken) throws IOException {
+        HttpURLConnection connection = makeRequest("PUT", "/game", request, authToken);
+        return readResponse(connection, JoinGameResponse.class);
+    }
+
+    private HttpURLConnection makeRequest(
+            String method,
+            String path,
+            Object body,
+            String authToken
+    ) throws IOException {
+
+        URL url = new URL(serverUrl + path);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod(method);
+        connection.setDoOutput(body != null);
+        connection.setRequestProperty("Accept", "application/json");
+
         if (authToken != null) {
-            builder.header("authorization", authToken);
+            connection.setRequestProperty("Authorization", authToken);
         }
-        var req =  builder.build();
-        return http.send(req, HttpResponse.BodyHandlers.ofString());
-    }
 
-    private HttpResponse<String> doGet(String path, String authToken) throws IOException, InterruptedException {
-        var builder = HttpRequest.newBuilder(URI.create(baseUrl + path)).GET();
-        if (authToken != null) {
-            builder.header("authorization", authToken);
-        }
-        var req =  builder.build();
-        return http.send(req, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private HttpResponse<String> doDelete(String path, String authToken) throws IOException, InterruptedException {
-        var builder = HttpRequest.newBuilder(URI.create(baseUrl + path)).DELETE();
-        if (authToken != null) {
-            builder.header("authorization", authToken);
-        }
-        var req =  builder.build();
-        return http.send(req, HttpResponse.BodyHandlers.ofString());
-    }
-
-    private HttpResponse<String> doPut(String path, String json, String authToken) throws IOException, InterruptedException {
-        var builder = HttpRequest.newBuilder(URI.create(baseUrl + path)).PUT(HttpRequest.BodyPublishers.ofString(json)).header("Content-Type", "application/json");
-        if (authToken != null) {
-            builder.header("authorization", authToken);
-        }
-        var req =  builder.build();
-        return http.send(req, HttpResponse.BodyHandlers.ofString());
-    }
-
-    public RegisterResponse register(String username, String password, String email) throws IOException, InterruptedException {
-        RegisterRequest req = new RegisterRequest();
-        req.username = username;
-        req.password = password;
-        req.email = email;
-        var resp = doPost("/user", gson.toJson(req), null);
-        if (resp.statusCode() == 200) {
-            return  gson.fromJson(resp.body(), RegisterResponse.class);
-        } else {
-            GenericResponse gr = safeParse(resp.body(), GenericResponse.class);
-            RegisterResponse r = new RegisterResponse();
-            r.authToken = null;
-            r.username = (gr != null ? gr.message : "Error: server returned " + resp.statusCode());
-            return r;
-        }
-    }
-
-    public LoginResponse login(String username, String password) throws IOException, InterruptedException {
-        LoginRequest req = new LoginRequest();
-        req.username = username;
-        req.password = password;
-        var resp = doPost("/session", gson.toJson(req), null);
-        if (resp.statusCode() == 200) {
-            return gson.fromJson(resp.body(), LoginResponse.class);
-        } else {
-            GenericResponse gr = safeParse(resp.body(), GenericResponse.class);
-            LoginResponse r = new LoginResponse();
-            r.authToken = null;
-            r.username = (gr != null ? gr.message : "Error: server returned " + resp.statusCode());
-            return r;
-        }
-    }
-
-    public GenericResponse logout(String authToken) throws IOException, InterruptedException {
-        var resp = doDelete("/session", authToken);
-        if (resp.statusCode() == 200) {
-            return  gson.fromJson(resp.body(), GenericResponse.class);
-        } else {
-            GenericResponse gr = safeParse(resp.body(), GenericResponse.class);
-            if (gr == null) {
-                gr = new GenericResponse();
+        if (body != null) {
+            connection.setRequestProperty("Content-Type", "application/json");
+            String json = gson.toJson(body);
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(json.getBytes());
             }
-            gr.message = gr.message == null ? ("Error: server returned " + resp.statusCode()) : gr.message;
-            return gr;
         }
+
+        return connection;
     }
 
-    public CreateGameResponse createGame(String gameName, String authToken) throws IOException, InterruptedException {
-        var req = new CreateGameRequest(gameName);
-        var resp = doPost("/game", gson.toJson(req), authToken);
-        if (resp.statusCode() == 200) {
-            return gson.fromJson(resp.body(), CreateGameResponse.class);
+    private <T> T readResponse(HttpURLConnection connection, Class<T> responseClass) throws IOException {
+        InputStream stream;
+
+        if (connection.getResponseCode() / 100 == 2) {
+            stream = connection.getInputStream();
         } else {
-            GenericResponse gr = safeParse(resp.body(), GenericResponse.class);
-            CreateGameResponse r = new CreateGameResponse();
-            r.message = (gr != null ? gr.message : "Error: server returned " + resp.statusCode());
-            r.gameID = -1;
-            return r;
-        }
-    }
-
-    public List<GameEntry> listGames(String authToken) throws IOException, InterruptedException {
-        var resp = doGet("/games", authToken);
-        if (resp.statusCode() == 200) {
-            try {
-                ListGamesResponse lr = gson.fromJson(resp.body(), ListGamesResponse.class);
-                if (lr != null && lr.games != null) {
-                    return List.of(lr.games);
+            stream = connection.getErrorStream();
+            if (stream == null) {
+                try {
+                    T resp = responseClass.getDeclaredConstructor().newInstance();
+                    responseClass.getField("message").set(resp,
+                            "Error: HTTP " + connection.getResponseCode());
+                    return resp;
+                } catch (Exception e) {
+                    throw new IOException("HTTP error " + connection.getResponseCode());
                 }
-            } catch (Exception e) {}
-            try {
-                GameEntry[] arr = gson.fromJson(resp.body(), GameEntry[].class);
-                return List.of(arr);
-            } catch (Exception e) {}
-        }
-        return List.of();
-    }
-
-    public GenericResponse joinGame(String team, int gameID, String authToken) throws IOException, InterruptedException {
-        JoinGameRequest req = new JoinGameRequest(team, gameID);
-        var resp = doPost("/game", gson.toJson(req), authToken);
-        if (resp.statusCode() == 200) {
-            return safeParse(resp.body(), GenericResponse.class);
-        } else {
-            var putResp = doPut("/game", gson.toJson(req), authToken);
-            if (putResp.statusCode() == 200) {
-                return safeParse(putResp.body(), GenericResponse.class);
             }
-            GenericResponse gr = safeParse(putResp.body(), GenericResponse.class);
-            if (gr == null) {
-                gr = new GenericResponse();
-            }
-            gr.message = gr.message == null ? ("Error: server returned " + resp.statusCode()) : gr.message;
-            return gr;
         }
-    }
 
-    private <T> T safeParse(String body, Class<T> clazz) {
-        try {
-            return gson.fromJson(body, clazz);
-        } catch (Exception ex) {
-            return null;
+        try (InputStreamReader reader = new InputStreamReader(stream)) {
+            return gson.fromJson(reader, responseClass);
         }
     }
 }

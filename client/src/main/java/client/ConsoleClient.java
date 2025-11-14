@@ -1,5 +1,6 @@
 package client;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import client.ServerFacade.*;
 import java.io.BufferedReader;
@@ -8,104 +9,117 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class ConsoleClient {
+
     private final ServerFacade facade;
     private final BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
     private final Gson gson = new Gson();
+
     private String authToken = null;
     private String loggedInUser = null;
     private List<GameEntry> lastGames = new ArrayList<>();
 
-    public ConsoleClient(String serverHost, int serverPort) {
+    public ConsoleClient(String serverHost, String serverPort) {
         facade = new ServerFacade(serverHost, serverPort);
     }
 
     public static void main(String[] args) throws Exception {
-        ConsoleClient client = new ConsoleClient("localhost", 7000);
+        ConsoleClient client = new ConsoleClient("localhost", "8080");
         client.run();
     }
 
     public void run() throws IOException {
-        System.out.println("Welcome to Console Chess (Phase 5 pregame client).");
+        System.out.println("Welcome to 240 chess. Type Help to get started.\n");
+
         while (true) {
-            if (authToken == null) {
-                preloginLoop();
-            } else {
-                postloginLoop();
-            }
+            if (authToken == null) {preloginLoop();}
+            else {postloginLoop();}
         }
     }
 
     private void preloginLoop() throws IOException {
-        System.out.println("\nprelogin> (type 'help' for commands)");
-        String line = prompt("> ");
+        String line = prompt("[LOGGED_OUT] >>> ");
         if (line == null) {return;}
-        switch (line.trim().toLowerCase(Locale.ROOT)) {
+
+        String[] parts = line.trim().split("\\s+");
+        if (parts.length == 0) {return;}
+        String cmd = parts[0].toLowerCase();
+
+        switch (cmd) {
             case "help" -> showPreloginHelp();
-            case "quit", "exit" -> {System.out.println("Goodbye."); System.exit(0);}
-            case "login" -> handleLogin();
-            case "register" -> handleRegister();
+            case "quit", "exit" -> { System.out.println("Goodbye."); System.exit(0); }
+            case "login" -> handleLogin(parts[1], parts[2]);
+            case "register" -> handleRegister(parts[1], parts[2], parts[3]);
             default -> System.out.println("Unknown command. Type 'help' for options.");
         }
     }
 
     private void showPreloginHelp() {
         System.out.println("""
-                Prelogin commands:
-                  help      - show this message
-                  register  - create a new user and log in
-                  login     - log in with existing user
-                  quit/exit - exit the program
-                """);
+              register <USERNAME> <PASSWORD> <EMAIL> - create an account
+              login <USERNAME> <PASSWORD> - log into the server
+              quit - quit the program
+              help - list commands
+            """);
     }
 
-    private void handleLogin() throws IOException {
+    private void handleLogin(String username, String password) throws IOException {
         try {
-            String username = promptNonEmpty("username: ");
-            String password = promptNonEmpty("password: ");
-            LoginResponse r = facade.login(username, password);
+            LoginRequest req = new LoginRequest();
+            req.username = username;
+            req.password = password;
+
+            LoginResponse r = facade.login(req);
+
             if (r.authToken != null) {
                 authToken = r.authToken;
-                loggedInUser = username;
-                System.out.println("Logged in as " + username + ".");
+                loggedInUser = r.username;
+                System.out.println("Logged in as " + loggedInUser + ".");
             } else {
-                System.out.println("Login failed: " + r.username);
+                System.out.println("Login failed: " + (r.message == null ? "unknown error" : r.message));
             }
+
         } catch (Exception ex) {
             System.out.println("Error: " + ex.getMessage());
         }
     }
 
-    private void handleRegister() throws IOException {
+    private void handleRegister(String username, String password, String email) throws IOException {
         try {
-            String username = promptNonEmpty("username: ");
-            String password = promptNonEmpty("password; ");
-            String email = promptNonEmpty("email; ");
-            RegisterResponse r = facade.register(username, password, email);
+            RegisterRequest req = new RegisterRequest();
+            req.username = username;
+            req.password = password;
+            req.email = email;
+
+            RegisterResponse r = facade.register(req);
 
             if (r.authToken != null) {
                 authToken = r.authToken;
-                loggedInUser = username;
-                System.out.println("Registered and logged in as " + username + ".");
+                loggedInUser = r.username;
+                System.out.println("Registered and logged in as " + loggedInUser + ".");
+            } else {
+                System.out.println("Register failed: " + (r.message == null ? "unknown error" : r.message));
             }
-            else {
-                System.out.println("Register failed: " + r.username);
-            }
+
         } catch (Exception ex) {
             System.out.println("Error: " + ex.getMessage());
         }
     }
 
     private void postloginLoop() throws IOException {
-        System.out.println("\npostlogin> (type 'help' for commands)");
-        String line = prompt("> ");
+        String line = prompt("\n[LOGGED_IN] >>> ");
         if (line == null) {return;}
-        switch (line.trim().toLowerCase(Locale.ROOT)) {
+
+        String[] parts = line.trim().split("\\s+");
+        if (parts.length == 0) {return;}
+        String cmd = parts[0].toLowerCase();
+
+        switch (cmd) {
             case "help" -> showPostloginHelp();
             case "logout" -> doLogout();
-            case "create" -> doCreateGame();
+            case "create" -> doCreateGame(String.join(" ", Arrays.copyOfRange(parts, 1, parts.length)));
             case "list" -> doListGames();
-            case "play" -> doPlayGame();
-            case "observe" -> doObserveGame();
+            case "play", "join" -> doPlayGame(Integer.parseInt(parts[1]), parts[2]);
+            case "observe" -> doObserveGame(Integer.parseInt(parts[1]));
             case "quit", "exit" -> {
                 doLogout();
                 System.out.println("Goodbye.");
@@ -117,14 +131,13 @@ public class ConsoleClient {
 
     private void showPostloginHelp() {
         System.out.println("""
-                Postlogin commands:
-                  help      - show this message
-                  list      - list games on server
-                  create    - create a new game (does NOT join)
-                  play      - join a game and draw board (no gameplay yet)
-                  observe   - observe a game (draw board)
-                  logout    - log out
-                  quit/exit - logout and exit
+            create <NAME> - create a game
+            list - list all games
+            play - join a game to play
+            observe - join a game as an observer
+            logout - log out of your account
+            quit - exit the program
+            help - list commands
         """);
     }
 
@@ -134,9 +147,11 @@ public class ConsoleClient {
                 System.out.println("Not logged in.");
                 return;
             }
-            GenericResponse r = facade.logout(authToken);
-            System.out.println(r != null && r.message != null ? r.message : "Logged out.");
-        }  catch (Exception ex) {
+
+            LogoutResponse r = facade.logout(authToken);
+            System.out.println(r.message != null ? r.message : "Logged out.");
+
+        } catch (Exception ex) {
             System.out.println("Error logging out: " + ex.getMessage());
         } finally {
             authToken = null;
@@ -145,14 +160,15 @@ public class ConsoleClient {
         }
     }
 
-    private void doCreateGame() throws IOException {
+    private void doCreateGame(String name) throws IOException {
         try {
-            String name = promptNonEmpty("Game name: ");
-            CreateGameResponse r = facade.createGame(name, authToken);
+            CreateGameRequest req = new CreateGameRequest(name);
+            CreateGameResponse r = facade.createGame(req, authToken);
+
             if (r.gameID > 0) {
-                System.out.println("Game created.");
+                System.out.println("Game created with ID " + r.gameID + ".");
             } else {
-                System.out.println("Create failed: " + (r.message == null ? "unknown" : r.message));
+                System.out.println("Create failed: " + (r.message == null ? "unknown error" : r.message));
             }
         } catch (Exception ex) {
             System.out.println("Error creating game: " + ex.getMessage());
@@ -161,88 +177,85 @@ public class ConsoleClient {
 
     private void doListGames() throws IOException {
         try {
-            List<GameEntry> games = facade.listGames(authToken);
-            lastGames = new ArrayList<>(games);
-            if (games.isEmpty()) {
+            ListGamesResponse r = facade.listGames(authToken);
+
+            if (r.message != null) {
+                System.out.println("Error listing games: " + r.message);
+                return;
+            }
+
+            lastGames = Arrays.asList(r.games);
+
+            if (lastGames.isEmpty()) {
                 System.out.println("No games found.");
                 return;
             }
+
             System.out.println("Games:");
-            for (int i = 0; i < games.size(); i++) {
-                GameEntry g = games.get(i);
-                String players = String.format("%s vs %s", g.whiteUsername == null ? "<empty>" : g.whiteUsername, g.blackUsername == null ? "<empty>" : g.blackUsername);
+            for (int i = 0; i < lastGames.size(); i++) {
+                GameEntry g = lastGames.get(i);
+                String players = (g.whiteUsername == null ? "<empty>" : g.whiteUsername)
+                        + " vs "
+                        + (g.blackUsername == null ? "<empty>" : g.blackUsername);
                 System.out.printf("  %d) %s - %s%n", i + 1, g.gameName, players);
             }
+
         } catch (Exception ex) {
             System.out.println("Error listing games: " + ex.getMessage());
         }
     }
 
-    private void doPlayGame() throws IOException {
+    private void doPlayGame(int gameNum, String color) throws IOException {
         try {
             if (lastGames.isEmpty()) {
                 System.out.println("No recent game list. Use 'list' first.");
                 return;
             }
-            String idxStr = promptNonEmpty("Enter game number to join (from last 'list'): ");
-            int idx = Integer.parseInt(idxStr);
-            if (idx < 1 || idx > lastGames.size()) {
+
+            if (gameNum < 1 || gameNum > lastGames.size()) {
                 System.out.println("Invalid number.");
                 return;
             }
-            GameEntry chosen = lastGames.get(idx - 1);
-            String color = promptNonEmpty("Which color do you want to play? (white/black): ").trim().toLowerCase(Locale.ROOT);
-            String team = switch(color) {
+
+            GameEntry chosen = lastGames.get(gameNum - 1);
+
+            String team = switch (color.toLowerCase()) {
                 case "white", "w" -> "WHITE";
                 case "black", "b" -> "BLACK";
-                default -> { System.out.println("Unknown color - using white by default."); yield "WHITE"; }
+                default -> "WHITE";
             };
 
-            GenericResponse r = facade.joinGame(team, chosen.gameID, authToken);
-            System.out.println(r != null && r.message != null ? r.message : "Joined (server did not return a message).");
+            JoinGameRequest req = new JoinGameRequest(team, chosen.gameID);
+            JoinGameResponse r = facade.joinGame(req, authToken);
 
-            boolean drawWhitePerspective = !team.equals("BLACK");
-            BoardDrawer.drawInitialBoard(drawWhitePerspective);
-        } catch (NumberFormatException nf) {
-            System.out.println("Please enter a valid number.");
+            System.out.println(r.message != null ? r.message : "Joined game.");
+
+            boolean whitePerspective = !team.equalsIgnoreCase("BLACK");
+            BoardDrawer.drawInitialBoard(whitePerspective ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
+
         } catch (Exception ex) {
             System.out.println("Error joining game: " + ex.getMessage());
         }
     }
 
-    private void doObserveGame() throws IOException {
+    private void doObserveGame(int gameNum) throws IOException {
         try {
-            if (lastGames.isEmpty()) {
-                System.out.println("No recent game list. Use 'list' first.");
-                return;
-            }
-            String idxStr = promptNonEmpty("Enter game number to observe (from last 'list'): ");
-            int idx = Integer.parseInt(idxStr);
-            if (idx < 1 || idx > lastGames.size()) {
+            if (gameNum < 1 || gameNum > lastGames.size()) {
                 System.out.println("Invalid number.");
                 return;
             }
-            GameEntry chosen = lastGames.get(idx - 1);
-            System.out.println("Observing: " +  chosen.gameName + " (" + (chosen.whiteUsername == null ? "<empty>" : chosen.whiteUsername) + " vs " + (chosen.blackUsername == null ? "<empty>" : chosen.blackUsername) + ")");
-            BoardDrawer.drawinitialBoard(true);
-        } catch (NumberFormatException nf) {
-            System.out.println("Please enter a valid number.");
+
+            GameEntry g = lastGames.get(gameNum - 1);
+            System.out.println("Observing: " + g.gameName);
+            BoardDrawer.drawInitialBoard(ChessGame.TeamColor.WHITE);
+
         } catch (Exception ex) {
             System.out.println("Error observing game: " + ex.getMessage());
         }
     }
 
-    private String prompt(String prompt) throws IOException {
-        System.out.print(prompt);
+    private String prompt(String p) throws IOException {
+        System.out.print(p);
         return in.readLine();
-    }
-
-    private String promptNonEmpty(String prompt) throws IOException {
-        String s = null;
-        while (s == null || s.trim().isEmpty()) {
-            s = prompt(prompt);
-            if (s == null) {throw new IOException("Input closed");}
-        }
-        return s.trim();
     }
 }
