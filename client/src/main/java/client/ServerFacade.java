@@ -64,7 +64,10 @@ public class ServerFacade {
             String authToken
     ) throws IOException {
 
-        URL url = new URL(serverUrl + path);
+        //System.out.println("URL = " + serverUrl + path);
+        URI uri = URI.create(serverUrl + path);
+        URL url = uri.toURL();
+
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod(method);
         connection.setDoOutput(body != null);
@@ -77,6 +80,7 @@ public class ServerFacade {
         if (body != null) {
             connection.setRequestProperty("Content-Type", "application/json");
             String json = gson.toJson(body);
+            //OutputStream os = connection.getOutputStream();
             try (OutputStream os = connection.getOutputStream()) {
                 os.write(json.getBytes());
             }

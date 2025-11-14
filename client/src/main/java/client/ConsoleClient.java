@@ -22,11 +22,6 @@ public class ConsoleClient {
         facade = new ServerFacade(serverHost, serverPort);
     }
 
-    public static void main(String[] args) throws Exception {
-        ConsoleClient client = new ConsoleClient("localhost", "8080");
-        client.run();
-    }
-
     public void run() throws IOException {
         System.out.println("Welcome to 240 chess. Type Help to get started.\n");
 
