@@ -12,12 +12,11 @@ public class ServerFacadeTests {
 
     private static Server server;
     private static ServerFacade facade;
-    private static int port;   // <-- FIX: Make port available to all tests
-
+    private static int port;
     @BeforeAll
     public static void init() {
         server = new Server();
-        port = server.run(0);      // <-- store port in static field
+        port = server.run(0);
 
         System.out.println("Started test HTTP server on port " + port);
 
@@ -31,7 +30,6 @@ public class ServerFacadeTests {
 
     @BeforeEach
     public void clearDB() throws Exception {
-        // FIX: use static port field
         HttpURLConnection connection =
                 (HttpURLConnection) new URL("http://localhost:" + port + "/db").openConnection();
 
@@ -116,7 +114,7 @@ public class ServerFacadeTests {
 
         var res = facade.logout(reg.authToken);
 
-        assertNull(res.message);   // 200 OK produces "{}"
+        assertNull(res.message);
     }
 
     @Test
@@ -145,21 +143,16 @@ public class ServerFacadeTests {
 
     @Test
     public void listGamesPositive() throws Exception {
-        // register a user
         var reg = facade.register(newReq("tom"));
 
-        // create two games
         var create1 = facade.createGame(new ServerFacade.CreateGameRequest("One"), reg.authToken);
         var create2 = facade.createGame(new ServerFacade.CreateGameRequest("Two"), reg.authToken);
 
-        // list games
         var res = facade.listGames(reg.authToken);
 
-        // basic checks
         assertNotNull(res.games);
         assertTrue(res.games.length >= 2, "Expected at least two games");
 
-        // verify that our games appear in the returned array
         boolean foundOne = false;
         boolean foundTwo = false;
         for (var g : res.games) {
@@ -181,13 +174,16 @@ public class ServerFacadeTests {
     public void joinGamePositive() throws Exception {
         var reg = facade.register(newReq("zoe"));
 
-        // Create a game to join
-        var create = facade.createGame(new ServerFacade.CreateGameRequest("JoinMe"), reg.authToken);
+        var create = facade.createGame(
+                new ServerFacade.CreateGameRequest("JoinMe"),
+                reg.authToken
+        );
 
-        var req = new ServerFacade.JoinGameRequest("WHITE", create.gameID);  // <-- FIXED ORDER
+        var req = new ServerFacade.JoinGameRequest("WHITE", create.gameID);
+
         var res = facade.joinGame(req, reg.authToken);
 
-        assertNull(res.message);  // "{}" on success
+        assertNull(res.message);
     }
 
     @Test
@@ -195,7 +191,7 @@ public class ServerFacadeTests {
         var reg = facade.register(newReq("bob2"));
         var create = facade.createGame(new ServerFacade.CreateGameRequest("BadJoin"), reg.authToken);
 
-        var req = new ServerFacade.JoinGameRequest("PURPLE", create.gameID);  // bad color
+        var req = new ServerFacade.JoinGameRequest("PURPLE", create.gameID);
         var res = facade.joinGame(req, reg.authToken);
 
         assertNotNull(res.message);
