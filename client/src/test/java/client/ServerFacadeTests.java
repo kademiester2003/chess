@@ -52,7 +52,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void registerNegative_duplicateUser() throws Exception {
+    public void registerNegativeDuplicateUser() throws Exception {
         var req = new ServerFacade.RegisterRequest();
         req.username = "bob";
         req.password = "pass";
@@ -85,7 +85,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void loginNegative_wrongPassword() throws Exception {
+    public void loginNegativeWrongPassword() throws Exception {
         var req = new ServerFacade.RegisterRequest();
         req.username = "sam";
         req.password = "goodpw";
@@ -118,7 +118,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void logoutNegative_invalidToken() throws Exception {
+    public void logoutNegativeInvalidToken() throws Exception {
         var res = facade.logout("bad-token");
 
         assertNotNull(res.message);
@@ -134,7 +134,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void createGameNegative_invalidToken() throws Exception {
+    public void createGameNegativeInvalidToken() throws Exception {
         var req = new ServerFacade.CreateGameRequest("FailGame");
         var res = facade.createGame(req, "bad-token");
 
@@ -156,8 +156,8 @@ public class ServerFacadeTests {
         boolean foundOne = false;
         boolean foundTwo = false;
         for (var g : res.games) {
-            if (g.gameName != null && g.gameName.equals("One")) foundOne = true;
-            if (g.gameName != null && g.gameName.equals("Two")) foundTwo = true;
+            if (g.gameName != null && g.gameName.equals("One")) {foundOne = true;}
+            if (g.gameName != null && g.gameName.equals("Two")) {foundTwo = true;}
         }
 
         assertTrue(foundOne, "Game named 'One' was not found in listGames result");
@@ -165,7 +165,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void listGamesNegative_invalidToken() throws Exception {
+    public void listGamesNegativeInvalidToken() throws Exception {
         var res = facade.listGames("bad-token");
         assertNotNull(res.message);
     }
@@ -183,7 +183,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void joinGameNegative_invalidGame() throws Exception {
+    public void joinGameNegativeInvalidGame() throws Exception {
         var reg = facade.register(newReq("rob"));
 
         var req = new ServerFacade.JoinGameRequest("BLACK", 999999);
@@ -193,7 +193,7 @@ public class ServerFacadeTests {
     }
 
     @Test
-    public void joinGameNegative_invalidToken() throws Exception {
+    public void joinGameNegativeInvalidToken() throws Exception {
         var creator = facade.register(newReq("alice2"));
         var create = facade.createGame(new ServerFacade.CreateGameRequest("NoAuthGame"), creator.authToken);
 
