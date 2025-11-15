@@ -113,9 +113,9 @@ public class ConsoleClient {
             case "logout" -> doLogout();
             case "create" -> doCreateGame(String.join(" ", Arrays.copyOfRange(parts, 1, parts.length)));
             case "list" -> doListGames();
-            case "play", "join" -> doPlayGame(Integer.parseInt(parts[1]), parts[2]);
+            case "join" -> doJoinGame(Integer.parseInt(parts[1]), parts[2]);
             case "observe" -> doObserveGame(Integer.parseInt(parts[1]));
-            case "quit", "exit" -> {
+            case "quit" -> {
                 doLogout();
                 System.out.println("Goodbye.");
                 System.exit(0);
@@ -128,8 +128,8 @@ public class ConsoleClient {
         System.out.println("""
             create <NAME> - create a game
             list - list all games
-            play - join a game to play
-            observe - join a game as an observer
+            join <ID> [WHITE|BLACK] - join a game to play
+            observe <ID> - join a game as an observer
             logout - log out of your account
             quit - exit the program
             help - list commands
@@ -200,7 +200,7 @@ public class ConsoleClient {
         }
     }
 
-    private void doPlayGame(int gameNum, String color) throws IOException {
+    private void doJoinGame(int gameNum, String color) throws IOException {
         try {
             if (lastGames.isEmpty()) {
                 System.out.println("No recent game list. Use 'list' first.");
