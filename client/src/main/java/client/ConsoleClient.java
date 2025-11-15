@@ -39,12 +39,31 @@ public class ConsoleClient {
         if (parts.length == 0) {return;}
         String cmd = parts[0].toLowerCase();
 
-        switch (cmd) {
-            case "help" -> showPreloginHelp();
-            case "quit", "exit" -> { System.out.println("Goodbye."); System.exit(0); }
-            case "login" -> handleLogin(parts[1], parts[2]);
-            case "register" -> handleRegister(parts[1], parts[2], parts[3]);
-            default -> System.out.println("Unknown command. Type 'help' for options.");
+        try {
+            switch (cmd) {
+                case "help" -> showPreloginHelp();
+                case "quit" -> {
+                    System.out.println("Goodbye.");
+                    System.exit(0);
+                }
+                case "login" -> {
+                    if (parts.length != 3) {
+                        System.out.println("Wrong number of arguments.");
+                        return;
+                    }
+                    handleLogin(parts[1], parts[2]);
+                }
+                case "register" -> {
+                    if (parts.length != 4) {
+                        System.out.println("Wrong number of arguments.");
+                        return;
+                    }
+                    handleRegister(parts[1], parts[2], parts[3]);
+                }
+                default -> System.out.println("Unknown command. Type 'help' for options.");
+            }
+        } catch (Exception ex) {
+            System.out.println("Error:" + ex.getMessage());
         }
     }
 
@@ -108,19 +127,41 @@ public class ConsoleClient {
         if (parts.length == 0) {return;}
         String cmd = parts[0].toLowerCase();
 
-        switch (cmd) {
-            case "help" -> showPostloginHelp();
-            case "logout" -> doLogout();
-            case "create" -> doCreateGame(String.join(" ", Arrays.copyOfRange(parts, 1, parts.length)));
-            case "list" -> doListGames();
-            case "join" -> doJoinGame(Integer.parseInt(parts[1]), parts[2]);
-            case "observe" -> doObserveGame(Integer.parseInt(parts[1]));
-            case "quit" -> {
-                doLogout();
-                System.out.println("Goodbye.");
-                System.exit(0);
+        try {
+            switch (cmd) {
+                case "help" -> showPostloginHelp();
+                case "logout" -> doLogout();
+                case "create" -> {
+                    if (parts.length != 2) {
+                        System.out.println("Wrong number of arguments.");
+                        return;
+                    }
+                    doCreateGame(String.join(" ", Arrays.copyOfRange(parts, 1, parts.length)));
+                }
+                case "list" -> doListGames();
+                case "join" -> {
+                    if (parts.length != 3) {
+                        System.out.println("Wrong number of arguments.");
+                        return;
+                    }
+                    doJoinGame(Integer.parseInt(parts[1]), parts[2]);
+                }
+                case "observe" -> {
+                    if (parts.length != 2) {
+                        System.out.println("Wrong number of arguments.");
+                        return;
+                    }
+                    doObserveGame(Integer.parseInt(parts[1]));
+                }
+                case "quit" -> {
+                    doLogout();
+                    System.out.println("Goodbye.");
+                    System.exit(0);
+                }
+                default -> System.out.println("Unknown command. Type 'help' for options.");
             }
-            default -> System.out.println("Unknown command. Type 'help' for options.");
+        } catch (Exception ex) {
+            System.out.println("Error: " + ex.getMessage());
         }
     }
 
@@ -161,7 +202,7 @@ public class ConsoleClient {
             CreateGameResponse r = facade.createGame(req, authToken);
 
             if (r.gameID > 0) {
-                System.out.println("Game created with ID " + r.gameID + ".");
+                System.out.println("Game created.");
             } else {
                 System.out.println("Create failed: " + (r.message == null ? "unknown error" : r.message));
             }
@@ -224,6 +265,12 @@ public class ConsoleClient {
             JoinGameResponse r = facade.joinGame(req, authToken);
 
             System.out.println(r.message != null ? r.message : "Joined game.");
+
+            if (team.equals("WHITE")) {
+                chosen.whiteUsername = loggedInUser;
+            } else {
+                chosen.blackUsername = loggedInUser;
+            }
 
             boolean whitePerspective = !team.equalsIgnoreCase("BLACK");
             BoardDrawer.drawInitialBoard(whitePerspective ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);

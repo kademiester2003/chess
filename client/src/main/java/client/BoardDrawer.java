@@ -14,7 +14,6 @@ public class BoardDrawer {
 
         ChessBoard board = game.getBoard();
 
-        // Black perspective → flip ranks/files
         int startRank = (perspective == ChessGame.TeamColor.WHITE) ? 8 : 1;
         int endRank   = (perspective == ChessGame.TeamColor.WHITE) ? 1 : 8;
         int rankStep  = (perspective == ChessGame.TeamColor.WHITE) ? -1 : 1;
@@ -26,13 +25,12 @@ public class BoardDrawer {
         System.out.println();
 
         for (int r = startRank; r != endRank + rankStep; r += rankStep) {
-            // Row number label
             System.out.print(" " + r + " ");
 
             for (int f = startFile; f != endFile + fileStep; f += fileStep) {
                 String bg = ((r + f) % 2 == 0) ?
-                        EscapeSequences.SET_BG_COLOR_LIGHT_GREY :
-                        EscapeSequences.SET_BG_COLOR_DARK_GREY;
+                        EscapeSequences.SET_BG_COLOR_DARK_GREY :
+                        EscapeSequences.SET_BG_COLOR_LIGHT_GREY;
 
                 ChessPosition pos = new ChessPosition(r, f);
                 ChessPiece piece = board.getPiece(pos);
@@ -50,10 +48,9 @@ public class BoardDrawer {
             System.out.println();
         }
 
-        // File labels (a–h)
         System.out.print("\n    ");
         for (char c = 'a'; c <= 'h'; c++) {
-            System.out.print(" " + c + "  ");
+            System.out.print(" " + c + " ");
         }
         System.out.println("\n");
     }
