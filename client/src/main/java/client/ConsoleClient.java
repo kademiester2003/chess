@@ -1,7 +1,6 @@
 package client;
 
 import chess.ChessGame;
-import com.google.gson.Gson;
 import client.ServerFacade.*;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,7 +11,6 @@ public class ConsoleClient {
 
     private final ServerFacade facade;
     private final BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-    private final Gson gson = new Gson();
 
     private String authToken = null;
     private String loggedInUser = null;
@@ -220,7 +218,7 @@ public class ConsoleClient {
                 return;
             }
 
-            lastGames = Arrays.asList(r.games);
+            lastGames = new ArrayList<>(Arrays.asList(r.games));
 
             if (lastGames.isEmpty()) {
                 System.out.println("No games found.");
@@ -264,7 +262,10 @@ public class ConsoleClient {
             JoinGameRequest req = new JoinGameRequest(team, chosen.gameID);
             JoinGameResponse r = facade.joinGame(req, authToken);
 
-            System.out.println(r.message != null ? r.message : "Joined game.");
+            if (r.message != null) {
+                System.out.println("Error: " + r.message);
+                return;
+            }
 
             if (team.equals("WHITE")) {
                 chosen.whiteUsername = loggedInUser;
@@ -272,8 +273,13 @@ public class ConsoleClient {
                 chosen.blackUsername = loggedInUser;
             }
 
+            lastGames.set(gameNum - 1, chosen);
+
+            System.out.println("Joined game.");
+
             boolean whitePerspective = !team.equalsIgnoreCase("BLACK");
-            BoardDrawer.drawInitialBoard(whitePerspective ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
+            BoardDrawer.drawInitialBoard(
+                    whitePerspective ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
 
         } catch (Exception ex) {
             System.out.println("Error joining game: " + ex.getMessage());

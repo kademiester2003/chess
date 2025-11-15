@@ -179,7 +179,7 @@ public class ServerFacadeTests {
         var req = new ServerFacade.JoinGameRequest("BLACK", create.gameID);
         var res = facade.joinGame(req, joiner.authToken);
 
-        assertNotNull(res.message);
+        assertNull(res.message);
     }
 
     @Test
