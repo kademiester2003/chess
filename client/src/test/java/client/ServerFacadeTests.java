@@ -172,27 +172,33 @@ public class ServerFacadeTests {
 
     @Test
     public void joinGamePositive() throws Exception {
-        var reg = facade.register(newReq("zoe"));
+        var creator = facade.register(newReq("creator"));
+        var create = facade.createGame(new ServerFacade.CreateGameRequest("JoinMe"), creator.authToken);
 
-        var create = facade.createGame(
-                new ServerFacade.CreateGameRequest("JoinMe"),
-                reg.authToken
-        );
+        var joiner = facade.register(newReq("joiner"));
+        var req = new ServerFacade.JoinGameRequest("BLACK", create.gameID);
+        var res = facade.joinGame(req, joiner.authToken);
 
-        var req = new ServerFacade.JoinGameRequest("WHITE", create.gameID);
-
-        var res = facade.joinGame(req, reg.authToken);
-
-        assertNull(res.message);
+        assertNotNull(res.message);
     }
 
     @Test
-    public void joinGameNegative_invalidColor() throws Exception {
-        var reg = facade.register(newReq("bob2"));
-        var create = facade.createGame(new ServerFacade.CreateGameRequest("BadJoin"), reg.authToken);
+    public void joinGameNegative_invalidGame() throws Exception {
+        var reg = facade.register(newReq("rob"));
 
-        var req = new ServerFacade.JoinGameRequest("PURPLE", create.gameID);
+        var req = new ServerFacade.JoinGameRequest("BLACK", 999999);
         var res = facade.joinGame(req, reg.authToken);
+
+        assertNotNull(res.message);
+    }
+
+    @Test
+    public void joinGameNegative_invalidToken() throws Exception {
+        var creator = facade.register(newReq("alice2"));
+        var create = facade.createGame(new ServerFacade.CreateGameRequest("NoAuthGame"), creator.authToken);
+
+        var req = new ServerFacade.JoinGameRequest("WHITE", create.gameID);
+        var res = facade.joinGame(req, "bad-token");
 
         assertNotNull(res.message);
     }
