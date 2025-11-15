@@ -142,7 +142,11 @@ public class ConsoleClient {
                         System.out.println("Wrong number of arguments.");
                         return;
                     }
-                    doJoinGame(Integer.parseInt(parts[1]), parts[2]);
+                    try {
+                        doJoinGame(Integer.parseInt(parts[1]), parts[2]);
+                    } catch (Exception ex) {
+                        System.out.println("Error: Must be a number");
+                    }
                 }
                 case "observe" -> {
                     if (parts.length != 2) {
@@ -256,7 +260,7 @@ public class ConsoleClient {
             String team = switch (color.toLowerCase()) {
                 case "white", "w" -> "WHITE";
                 case "black", "b" -> "BLACK";
-                default -> "WHITE";
+                default -> throw new IllegalArgumentException("Unknown color: " + color);
             };
 
             JoinGameRequest req = new JoinGameRequest(team, chosen.gameID);

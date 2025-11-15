@@ -49,9 +49,16 @@ public class BoardDrawer {
         }
 
         System.out.print("\n    ");
-        for (char c = 'a'; c <= 'h'; c++) {
-            System.out.print(" " + c + " ");
+        if (perspective == ChessGame.TeamColor.WHITE) {
+            for (char c = 'a'; c <= 'h'; c++) {
+                System.out.print(" " + c + " ");
+            }
+        } else {
+            for (char c = 'h'; c >= 'a'; c--) {
+                System.out.print(" " + c + " ");
+            }
         }
+
         System.out.println("\n");
     }
 
