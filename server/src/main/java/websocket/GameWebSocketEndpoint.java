@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import jakarta.websocket.*;
 import model.Auth;
 import model.Game;
+import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ErrorMessage;
 import websocket.messages.LoadGameMessage;
@@ -52,7 +53,13 @@ public class GameWebSocketEndpoint {
         }
 
         String ctStr =  ctEl.getAsString();
-        switch (ctStr) {}
+        switch (ctStr) {
+            case "CONNECT" -> handleConnect(session, gson.fromJson(root, UserGameCommand.class));
+            case "LEAVE" -> handleLeave(session, gson.fromJson(root, UserGameCommand.class));
+            case "RESIGN" -> handleResign(session, gson.fromJson(root, UserGameCommand.class));
+            case "MAKE_MOVE" -> handleMakeMove(session, gson.fromJson(root, MakeMoveCommand.class));
+            default -> sendError(session, "error: unknown command");
+        }
     }
 
     @OnClose
@@ -97,6 +104,35 @@ public class GameWebSocketEndpoint {
             sendError(session, "error: server data error");
         }
     }
+
+    private void handleLeave(Session session, UserGameCommand cmd) {
+        if (cmd == null) {
+            sendError(session, "error: invalid command");
+            return;
+        }
+        Integer gameID = cmd.getGameID();
+        String token = cmd.getAuthToken();
+
+        try {
+            Auth auth = dao.getAuth(token);
+            if (auth == null) {
+                sendError(session, "error: invalid auth token");
+            }
+
+            GameConnections gc = games.get(gameID);
+            if (gc != null) {
+                gc.removeSession(session);
+
+            }
+
+        } catch (DataAccessException ex) {
+            sendError(session, "error: server data error");
+        }
+    }
+
+    private void handleResign(Session session, UserGameCommand cmd) {}
+
+    private void handleMakeMove(Session session, MakeMoveCommand cmd) {}
 
     private void sendError(Session session, String msg) {
         try {
