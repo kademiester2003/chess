@@ -1,5 +1,6 @@
 package websocket;
 
+import chess.ChessGameAdapter;
 import com.google.gson.*;
 import com.google.gson.GsonBuilder;
 import dataaccess.DataAccess;
@@ -200,7 +201,20 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            boolean applied = ChessGameAdapter.tryApplyMove(model.game(), cmd.getMove(), auth.username());
+            boolean applied = ChessGameAdapter.tryApplyMove(model.game(), cmd.getMove());
+            if (!applied) {
+                sendError(session, "error: illegal move");
+                return;
+            }
+            dao.updateGame(model);
+
+            GameConnections gc = games.get(gameID);
+            if (gc != null) {
+                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(dao.getGame(gameID)));
+                gc.broadcastJson(load);
+            }
+            String moveText = auth.username() + " moved " + cmd.getMove().toReadable();
+            gc.broadcastNotification(new NotificationMessage(moveText));
         } catch (DataAccessException ex) {
             sendError(session, "error: server data error");
         }
