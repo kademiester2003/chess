@@ -1,7 +1,9 @@
 package dataaccess;
 
 import chess.ChessGame;
+import chess.ChessGameAdapter;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import model.Auth;
 import model.Game;
@@ -13,7 +15,7 @@ import java.util.List;
 
 public class MySQLDataAccess implements DataAccess {
 
-    private final Gson gson = new Gson();
+    private final Gson gson = new GsonBuilder().registerTypeAdapter(ChessGame.class, new ChessGameAdapter()).create();
 
     public MySQLDataAccess() throws DataAccessException {
         try {

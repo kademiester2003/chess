@@ -185,6 +185,25 @@ public class GameWebSocketEndpoint {
             return;
         }
         Integer gameID = cmd.getGameID();
+        String token = cmd.getAuthToken();
+
+        try {
+            Auth auth = dao.getAuth(token);
+            if (auth == null) {
+                sendError(session, "error: invalid auth token");
+                return;
+            }
+
+            Game model = dao.getGame(gameID);
+            if (model == null) {
+                sendError(session, "error: game not found");
+                return;
+            }
+
+            boolean applied = ChessGameAdapter.tryApplyMove(model.game(), cmd.getMove(), auth.username());
+        } catch (DataAccessException ex) {
+            sendError(session, "error: server data error");
+        }
     }
 
     private void sendError(Session session, String msg) {
