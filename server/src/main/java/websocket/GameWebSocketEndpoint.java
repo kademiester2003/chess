@@ -15,6 +15,8 @@ import model.Auth;
 import model.Game;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ErrorMessage;
+import websocket.messages.LoadGameMessage;
+import websocket.messages.NotificationMessage;
 
 public class GameWebSocketEndpoint {
     private static final Gson gson = new GsonBuilder().create();
@@ -83,6 +85,14 @@ public class GameWebSocketEndpoint {
             }
 
             GameConnections gc = games.computeIfAbsent(gameID, id -> new GameConnections(gameID));
+            gc.addSession(session, auth.username());
+
+            LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(game));
+            sendJson(session, load);
+
+            String side = gc.getSideForUsername(auth.username(), game);
+            String notifText = auth.username() + " connected as " + side;
+            gc.broadcastNotificationExcept(new NotificationMessage(notifText), session);
         } catch (DataAccessException ex) {
             sendError(session, "error: server data error");
         }

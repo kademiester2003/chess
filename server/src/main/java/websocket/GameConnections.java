@@ -2,7 +2,10 @@ package websocket;
 
 import com.google.gson.Gson;
 import jakarta.websocket.Session;
+import model.Game;
+import websocket.messages.NotificationMessage;
 
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameConnections {
@@ -20,5 +23,13 @@ public class GameConnections {
 
     public void removeSession(Session session, String username) {
         sessions.remove(session, username);
+    }
+    
+    public void removeSession(Optional<Session> s) {}
+
+    public String getSideForUsername(String username, Game game) {
+    }
+
+    public void broadcastNotificationExcept(NotificationMessage notificationMessage, Session session) {
     }
 }
