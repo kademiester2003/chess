@@ -122,17 +122,70 @@ public class GameWebSocketEndpoint {
             GameConnections gc = games.get(gameID);
             if (gc != null) {
                 gc.removeSession(session);
-
+                Game model = dao.getGame(gameID);
+                if (model != null) {
+                    boolean updated = false;
+                    String username = auth.username();
+                    if (username.equals(model.whiteUsername())) {
+                        Game updatedModel = new Game(model.gameID(), null, model.blackUsername(), model.gameName(), model.game());
+                        dao.updateGame(updatedModel);
+                        updated = true;
+                    } else if (username.equals(model.blackUsername())) {
+                        Game updatedModel = new Game(model.gameID(), model.whiteUsername(), null, model.gameName(), model.game());
+                        dao.updateGame(updatedModel);
+                        updated = true;
+                    }
+                    String msg = auth.username() + " left the game";
+                    gc.broadcastNotification(new NotificationMessage(msg));
+                }
+            } else {
+                sendError(session, "error: game not found");
             }
-
         } catch (DataAccessException ex) {
             sendError(session, "error: server data error");
         }
     }
 
-    private void handleResign(Session session, UserGameCommand cmd) {}
+    private void handleResign(Session session, UserGameCommand cmd) {
+        if (cmd == null) {
+            sendError(session, "error: invalid command");
+            return;
+        }
+        Integer gameID = cmd.getGameID();
+        String token = cmd.getAuthToken();
 
-    private void handleMakeMove(Session session, MakeMoveCommand cmd) {}
+        try {
+            Auth auth = dao.getAuth(token);
+            if (auth == null) {
+                sendError(session, "error: invalid auth token");
+                return;
+            }
+
+            Game model = dao.getGame(gameID);
+            if (model == null) {
+                sendError(session, "error: game not found");
+                return;
+            }
+
+            GameConnections gc = games.get(gameID);
+            if (gc != null) {
+                String msg = auth.username() + " resigned";
+                gc.broadcastNotification(new NotificationMessage(msg));
+                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(model));
+                gc.broadcastJson(load);
+            }
+        } catch (DataAccessException ex) {
+            sendError(session, "error: server data error");
+        }
+    }
+
+    private void handleMakeMove(Session session, MakeMoveCommand cmd) {
+        if (cmd == null) {
+            sendError(session, "error: invalid command");
+            return;
+        }
+        Integer gameID = cmd.getGameID();
+    }
 
     private void sendError(Session session, String msg) {
         try {
