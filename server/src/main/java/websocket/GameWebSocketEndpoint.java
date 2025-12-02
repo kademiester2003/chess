@@ -1,6 +1,6 @@
 package websocket;
 
-import chess.ChessGameAdapter;
+import chess.*;
 import com.google.gson.*;
 import com.google.gson.GsonBuilder;
 import dataaccess.DataAccess;
@@ -9,6 +9,7 @@ import dataaccess.MemoryDataAccess;
 import dataaccess.MySQLDataAccess;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.websocket.*;
@@ -19,6 +20,7 @@ import websocket.commands.UserGameCommand;
 import websocket.messages.ErrorMessage;
 import websocket.messages.LoadGameMessage;
 import websocket.messages.NotificationMessage;
+import websocket.messages.ServerMessage;
 
 public class GameWebSocketEndpoint {
     private static final Gson gson = new GsonBuilder().create();
@@ -201,20 +203,81 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            boolean applied = ChessGameAdapter.tryApplyMove(model.game(), cmd.getMove());
-            if (!applied) {
+            String username = auth.username();
+            ChessGame.TeamColor playerTeam = null;
+            if (username.equals(model.whiteUsername())) {
+                playerTeam = ChessGame.TeamColor.WHITE;
+            } else if (username.equals(model.blackUsername())) {
+                playerTeam = ChessGame.TeamColor.BLACK;
+            } else {
+                sendError(session, "error: you are not a player in this game");
+                return;
+            }
+
+            ChessGame chessGame = model.game();
+            if (chessGame == null) {
+                sendError(session, "error: game internal state missing");
+                return;
+            }
+
+            if (chessGame.getTeamTurn() != playerTeam) {
+                sendError(session, "error: not your turn");
+                return;
+            }
+
+            MakeMoveCommand.ChessMoveDto dto = cmd.getMove();
+            if (dto == null || dto.start == null || dto.end == null) {
+                sendError(session, "error: missing move data");
+                return;
+            }
+
+            ChessPosition startPos = new ChessPosition(dto.start.row + 1, dto.start.col + 1);
+            ChessPosition endPos = new ChessPosition(dto.end.row + 1, dto.end.col + 1);
+
+            Collection<ChessMove> validMoves = chessGame.validMoves(startPos);
+            ChessMove matchingMove = null;
+            if (validMoves != null) {
+                for (ChessMove m : validMoves) {
+                    if (m.getEndPosition().equals(endPos)) {
+                        if (dto.promotion == null) {
+                            if (m.getPromotionPiece() == null) {
+                                matchingMove = m;
+                                break;
+                            }
+                        } else {
+                            if (m.getPromotionPiece() != null &&
+                                    m.getPromotionPiece().name().equalsIgnoreCase(dto.promotion)) {
+                                matchingMove = m;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (matchingMove == null) {
                 sendError(session, "error: illegal move");
                 return;
             }
+
+            try {
+                chessGame.makeMove(matchingMove);
+            } catch (InvalidMoveException e) {
+                sendError(session, "error: illegal move");
+                return;
+            }
+
             dao.updateGame(model);
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
                 LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(dao.getGame(gameID)));
                 gc.broadcastJson(load);
+
+                String moveText = auth.username() + " moved " + dto.toReadable();
+                gc.broadcastNotification(new NotificationMessage(moveText));
             }
-            String moveText = auth.username() + " moved " + cmd.getMove().toReadable();
-            gc.broadcastNotification(new NotificationMessage(moveText));
+
         } catch (DataAccessException ex) {
             sendError(session, "error: server data error");
         }
@@ -227,7 +290,7 @@ public class GameWebSocketEndpoint {
         } catch (Exception ex) {}
     }
 
-    private void sendJson(Session session, ErrorMessage msg) {
+    private void sendJson(Session session, ServerMessage msg) {
         try {
             String json = gson.toJson(msg);
             session.getBasicRemote().sendText(json);
