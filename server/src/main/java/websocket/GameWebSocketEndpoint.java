@@ -5,14 +5,11 @@ import com.google.gson.*;
 import com.google.gson.GsonBuilder;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
-import dataaccess.MemoryDataAccess;
-import dataaccess.MySQLDataAccess;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
-import jakarta.websocket.*;
+import io.javalin.websocket.*;
 import model.Auth;
 import model.Game;
 import websocket.commands.MakeMoveCommand;
@@ -25,57 +22,51 @@ import websocket.messages.ServerMessage;
 public class GameWebSocketEndpoint {
     private static final Gson gson = new GsonBuilder().create();
     private static final ConcurrentHashMap<Integer, GameConnections> games = new ConcurrentHashMap<>();
-    private static final DataAccess dao;
-    static {
-        DataAccess tmp;
-        try {
-            tmp = new MySQLDataAccess();
-        } catch (DataAccessException ex) {
-            tmp = new MemoryDataAccess();
-        }
-        dao = tmp;
+    private final DataAccess dao;
+
+    public GameWebSocketEndpoint(DataAccess dao) {
+        this.dao = dao;
     }
 
-    @OnOpen
-    public void onOpen(Session session) {}
+    public void onConnect(WsConnectContext ctx) {
+        System.out.println("Client connected: " + ctx.session.getIdleTimeout());
+    }
 
-    @OnMessage
-    public void onMessage(Session session, String msg) {
+    public void onMessage(WsMessageContext ctx, String msg) {
         JsonObject root;
         try {
             root = JsonParser.parseString(msg).getAsJsonObject();
         } catch (JsonParseException | IllegalStateException ex) {
-            sendError(session, "error: invalid JSON");
+            sendError(ctx, "error: invalid JSON");
             return;
         }
 
-        JsonElement ctEl = root.get("commandType");
-        if (ctEl == null) {
-            sendError(session, "error: missing commandType");
+        String type = root.has("commandType") ? root.get("commandType").getAsString() : null;
+        if (type == null) {
+            sendError(ctx, "error: missing commandType");
             return;
         }
 
-        String ctStr =  ctEl.getAsString();
-        switch (ctStr) {
-            case "CONNECT" -> handleConnect(session, gson.fromJson(root, UserGameCommand.class));
-            case "LEAVE" -> handleLeave(session, gson.fromJson(root, UserGameCommand.class));
-            case "RESIGN" -> handleResign(session, gson.fromJson(root, UserGameCommand.class));
-            case "MAKE_MOVE" -> handleMakeMove(session, gson.fromJson(root, MakeMoveCommand.class));
-            default -> sendError(session, "error: unknown command");
+        switch (type) {
+            case "CONNECT" -> handleConnect(ctx, gson.fromJson(root, UserGameCommand.class));
+            case "LEAVE" -> handleLeave(ctx, gson.fromJson(root, UserGameCommand.class));
+            case "RESIGN" -> handleResign(ctx, gson.fromJson(root, UserGameCommand.class));
+            case "MAKE_MOVE" -> handleMakeMove(ctx, gson.fromJson(root, MakeMoveCommand.class));
+            default -> sendError(ctx, "error: unknown command");
         }
     }
 
-    @OnClose
-    public void onClose(Session session, CloseReason reason) {
-        games.values().forEach(gc -> gc.removeSession(session));
+    public void onClose(WsCloseContext ctx) {
+        System.out.println("Client disconnected: " + ctx.session.getIdleTimeout());
     }
 
-    @OnError
-    public void onError(Session session, Throwable thr) {}
+    public void onError(WsErrorContext ctx, Throwable thr) {
+        System.err.println("Websocket ERROR: " + thr.getMessage());
+    }
 
-    private void handleConnect(Session session, UserGameCommand cmd) {
+    private void handleConnect(WsContext ctx, UserGameCommand cmd) {
         if (cmd == null) {
-            sendError(session, "error: invalid command");
+            sendError(ctx, "error: invalid command");
             return;
         }
         Integer gameID = cmd.getGameID();
@@ -84,33 +75,33 @@ public class GameWebSocketEndpoint {
         try {
             Auth auth = dao.getAuth(token);
             if (auth == null) {
-                sendError(session, "error: invalid auth token");
+                sendError(ctx, "error: invalid auth token");
                 return;
             }
 
             Game game = dao.getGame(gameID);
             if (game == null) {
-                sendError(session, "error: game not found");
+                sendError(ctx, "error: game not found");
                 return;
             }
 
             GameConnections gc = games.computeIfAbsent(gameID, id -> new GameConnections(gameID));
-            gc.addSession(session, auth.username());
+            gc.addSession(ctx, auth.username());
 
             LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(game));
-            sendJson(session, load);
+            sendJson(ctx, load);
 
             String side = gc.getSideForUsername(auth.username(), game);
             String notifText = auth.username() + " connected as " + side;
-            gc.broadcastNotificationExcept(new NotificationMessage(notifText), session);
+            gc.broadcastNotificationExcept(new NotificationMessage(notifText), ctx);
         } catch (DataAccessException ex) {
-            sendError(session, "error: server data error");
+            sendError(ctx, "error: server data error");
         }
     }
 
-    private void handleLeave(Session session, UserGameCommand cmd) {
+    private void handleLeave(WsContext ctx, UserGameCommand cmd) {
         if (cmd == null) {
-            sendError(session, "error: invalid command");
+            sendError(ctx, "error: invalid command");
             return;
         }
         Integer gameID = cmd.getGameID();
@@ -119,39 +110,38 @@ public class GameWebSocketEndpoint {
         try {
             Auth auth = dao.getAuth(token);
             if (auth == null) {
-                sendError(session, "error: invalid auth token");
+                sendError(ctx, "error: invalid auth token");
+                return;
             }
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
-                gc.removeSession(session);
+                gc.removeSession(ctx);
                 Game model = dao.getGame(gameID);
                 if (model != null) {
-                    boolean updated = false;
                     String username = auth.username();
                     if (username.equals(model.whiteUsername())) {
                         Game updatedModel = new Game(model.gameID(), null, model.blackUsername(), model.gameName(), model.game());
                         dao.updateGame(updatedModel);
-                        updated = true;
                     } else if (username.equals(model.blackUsername())) {
                         Game updatedModel = new Game(model.gameID(), model.whiteUsername(), null, model.gameName(), model.game());
                         dao.updateGame(updatedModel);
-                        updated = true;
                     }
                     String msg = auth.username() + " left the game";
                     gc.broadcastNotification(new NotificationMessage(msg));
                 }
             } else {
-                sendError(session, "error: game not found");
+                sendError(ctx, "error: game not found");
+                return;
             }
         } catch (DataAccessException ex) {
-            sendError(session, "error: server data error");
+            sendError(ctx, "error: server data error");
         }
     }
 
-    private void handleResign(Session session, UserGameCommand cmd) {
+    private void handleResign(WsContext ctx, UserGameCommand cmd) {
         if (cmd == null) {
-            sendError(session, "error: invalid command");
+            sendError(ctx, "error: invalid command");
             return;
         }
         Integer gameID = cmd.getGameID();
@@ -160,15 +150,23 @@ public class GameWebSocketEndpoint {
         try {
             Auth auth = dao.getAuth(token);
             if (auth == null) {
-                sendError(session, "error: invalid auth token");
+                sendError(ctx, "error: invalid auth token");
                 return;
             }
 
             Game model = dao.getGame(gameID);
             if (model == null) {
-                sendError(session, "error: game not found");
+                sendError(ctx, "error: game not found");
                 return;
             }
+
+            if (model.game() == null) {
+                sendError(ctx, "error: game already over");
+                return;
+            }
+
+            Game updatedModel = new Game(model.gameID(), model.whiteUsername(), model.blackUsername(), model.gameName(), null);
+            dao.updateGame(updatedModel);
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
@@ -178,13 +176,13 @@ public class GameWebSocketEndpoint {
                 gc.broadcastJson(load);
             }
         } catch (DataAccessException ex) {
-            sendError(session, "error: server data error");
+            sendError(ctx, "error: server data error");
         }
     }
 
-    private void handleMakeMove(Session session, MakeMoveCommand cmd) {
+    private void handleMakeMove(WsContext ctx, MakeMoveCommand cmd) {
         if (cmd == null) {
-            sendError(session, "error: invalid command");
+            sendError(ctx, "error: invalid command");
             return;
         }
         Integer gameID = cmd.getGameID();
@@ -193,13 +191,13 @@ public class GameWebSocketEndpoint {
         try {
             Auth auth = dao.getAuth(token);
             if (auth == null) {
-                sendError(session, "error: invalid auth token");
+                sendError(ctx, "error: invalid auth token");
                 return;
             }
 
             Game model = dao.getGame(gameID);
             if (model == null) {
-                sendError(session, "error: game not found");
+                sendError(ctx, "error: game not found");
                 return;
             }
 
@@ -210,24 +208,24 @@ public class GameWebSocketEndpoint {
             } else if (username.equals(model.blackUsername())) {
                 playerTeam = ChessGame.TeamColor.BLACK;
             } else {
-                sendError(session, "error: you are not a player in this game");
+                sendError(ctx, "error: you are not a player in this game");
                 return;
             }
 
             ChessGame chessGame = model.game();
             if (chessGame == null) {
-                sendError(session, "error: game internal state missing");
+                sendError(ctx, "error: game internal state missing");
                 return;
             }
 
             if (chessGame.getTeamTurn() != playerTeam) {
-                sendError(session, "error: not your turn");
+                sendError(ctx, "error: not your turn");
                 return;
             }
 
             MakeMoveCommand.ChessMoveDto dto = cmd.getMove();
             if (dto == null || dto.start == null || dto.end == null) {
-                sendError(session, "error: missing move data");
+                sendError(ctx, "error: missing move data");
                 return;
             }
 
@@ -256,14 +254,14 @@ public class GameWebSocketEndpoint {
             }
 
             if (matchingMove == null) {
-                sendError(session, "error: illegal move");
+                sendError(ctx, "error: illegal move");
                 return;
             }
 
             try {
                 chessGame.makeMove(matchingMove);
             } catch (InvalidMoveException e) {
-                sendError(session, "error: illegal move");
+                sendError(ctx, "error: illegal move");
                 return;
             }
 
@@ -279,21 +277,15 @@ public class GameWebSocketEndpoint {
             }
 
         } catch (DataAccessException ex) {
-            sendError(session, "error: server data error");
+            sendError(ctx, "error: server data error");
         }
     }
 
-    private void sendError(Session session, String msg) {
-        try {
-            ErrorMessage em = new ErrorMessage(msg);
-            sendJson(session, em);
-        } catch (Exception ex) {}
+    private void sendError(WsContext ctx, String msg) {
+        sendJson(ctx, new ErrorMessage(msg));
     }
 
-    private void sendJson(Session session, ServerMessage msg) {
-        try {
-            String json = gson.toJson(msg);
-            session.getBasicRemote().sendText(json);
-        } catch (IOException ex) {}
+    private void sendJson(WsContext ctx, ServerMessage msg) {
+        ctx.send(gson.toJson(msg));
     }
 }

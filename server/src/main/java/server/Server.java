@@ -9,6 +9,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import service.UserService;
 import service.GameService;
+import websocket.GameWebSocketEndpoint;
 
 public class Server {
 
@@ -128,6 +129,15 @@ public class Server {
             gameService.joinGame(token, req);
             ctx.status(200).result("{}");
         }));
+
+        //ws
+        server.ws("/ws", ws -> {
+            GameWebSocketEndpoint handler = new GameWebSocketEndpoint(dao);
+            ws.onConnect(handler::onConnect);
+            ws.onMessage(ctx -> handler.onMessage(ctx, ctx.message()));
+            ws.onClose(handler::onClose);
+            ws.onError(ctx -> handler.onError(ctx, ctx.error()));
+        });
     }
 
     public int run(int desiredPort) {

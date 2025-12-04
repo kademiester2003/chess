@@ -1,19 +1,27 @@
 package chess;
 
-import com.google.gson.Gson;
+import com.google.gson.*;
 
-public class ChessGameAdapter {
+import java.lang.reflect.Type;
 
-    private static final Gson gson = new Gson();
+public class ChessGameAdapter implements JsonSerializer<ChessGame>, JsonDeserializer<ChessGame> {
 
-    public static ChessGame fromJson(String json) {
-        return gson.fromJson(json, ChessGame.class);
+    @Override
+    public JsonElement serialize(ChessGame src, Type type, JsonSerializationContext context) {
+        return context.serialize(src.getBoard());
     }
 
-    public static String toJson(ChessGame game) {
-        return gson.toJson(game);
+    @Override
+    public ChessGame deserialize(JsonElement json, Type type, JsonDeserializationContext context)
+            throws JsonParseException {
+
+        ChessBoard board = context.deserialize(json, ChessBoard.class);
+        ChessGame game = new ChessGame();
+        game.setBoard(board);
+        return game;
     }
 
+    // WebSocket helper used in GameWebSocketEndpoint
     public static boolean tryApplyMove(ChessGame game, ChessMove move) {
         try {
             game.makeMove(move);
