@@ -6,9 +6,9 @@ public class MakeMoveCommand {
     private final CommandType commandType;
     private final String authToken;
     private final Integer gameID;
-    private final ChessMoveDto move;
+    public final Move move;
 
-    public MakeMoveCommand(CommandType commandType, String authToken, Integer gameID, ChessMoveDto move) {
+    public MakeMoveCommand(CommandType commandType, String authToken, Integer gameID, Move move) {
         this.commandType = commandType;
         this.authToken = authToken;
         this.gameID = gameID;
@@ -20,7 +20,7 @@ public class MakeMoveCommand {
     public CommandType getCommandType() { return commandType; }
     public String getAuthToken() { return authToken; }
     public Integer getGameID() { return gameID; }
-    public ChessMoveDto getMove() { return move; }
+    public Move getMove() { return move; }
 
     @Override
     public boolean equals(Object o) {
@@ -37,27 +37,16 @@ public class MakeMoveCommand {
         return Objects.hash(getCommandType(), getAuthToken(), getGameID(), getMove());
     }
 
-    public static class ChessMoveDto {
-        public Square start;
-        public Square end;
+    public static class Move {
+        public String start;
+        public String end;
         public String promotion;
 
-        public static class Square {
-            public int row;
-            public int col;
-        }
-
         public String toReadable() {
-            return squareToAlg(start) + " -> " + squareToAlg(end) + (promotion != null ? " promote=" + promotion : "");
-        }
-
-        private static String squareToAlg(Square s) {
-            if (s == null) {
-                return "?";
+            if (promotion != null) {
+                return start + " -> " + end + " promote=" + promotion;
             }
-            char file = (char) ('a' + s.col);
-            int rank = 1 + s.row;
-            return "" + file + rank;
+            return start + " -> " + end;
         }
     }
 }

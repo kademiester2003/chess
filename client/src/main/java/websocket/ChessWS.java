@@ -9,16 +9,7 @@ import websocket.messages.NotificationMessage;
 
 import jakarta.websocket.*;
 import java.net.URI;
-import java.util.concurrent.CompletableFuture;
 
-/**
- * Simplified WebSocket client wrapper for the console client.
- * Usage:
- *   ChessWS ws = new ChessWS("ws://localhost:8080/ws");
- *   ws.connect();
- *   ws.sendConnect(token, gameID);
- *   ws.sendMakeMove(...);
- */
 @ClientEndpoint
 public class ChessWS {
     private final URI uri;
@@ -88,7 +79,7 @@ public class ChessWS {
         sendJson(cmd);
     }
 
-    public void sendMakeMove(String token, int gameID, MakeMoveCommand.ChessMoveDto move) {
+    public void sendMakeMove(String token, int gameID, MakeMoveCommand.Move move) {
         MakeMoveCommand cmd = new MakeMoveCommand(MakeMoveCommand.CommandType.MAKE_MOVE, token, gameID, move);
         sendJson(cmd);
     }

@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
 
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.javalin.websocket.*;
@@ -223,41 +222,21 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            MakeMoveCommand.ChessMoveDto dto = cmd.getMove();
+            var dto = cmd.move;
             if (dto == null || dto.start == null || dto.end == null) {
                 sendError(ctx, "error: missing move data");
                 return;
             }
 
-            ChessPosition startPos = new ChessPosition(dto.start.row + 1, dto.start.col + 1);
-            ChessPosition endPos = new ChessPosition(dto.end.row + 1, dto.end.col + 1);
+            ChessPosition startPos = parseAlg(dto.start);
+            ChessPosition endPos = parseAlg(dto.start);
 
-            Collection<ChessMove> validMoves = chessGame.validMoves(startPos);
-            ChessMove matchingMove = null;
-            if (validMoves != null) {
-                for (ChessMove m : validMoves) {
-                    if (m.getEndPosition().equals(endPos)) {
-                        if (dto.promotion == null) {
-                            if (m.getPromotionPiece() == null) {
-                                matchingMove = m;
-                                break;
-                            }
-                        } else {
-                            if (m.getPromotionPiece() != null &&
-                                    m.getPromotionPiece().name().equalsIgnoreCase(dto.promotion)) {
-                                matchingMove = m;
-                                break;
-                            }
-                        }
-                    }
-                }
+            ChessPiece.PieceType promo = null;
+            if (dto.promotion != null) {
+                promo = ChessPiece.PieceType.valueOf(dto.promotion.toUpperCase());
             }
 
-            if (matchingMove == null) {
-                sendError(ctx, "error: illegal move");
-                return;
-            }
-
+            ChessMove matchingMove = new ChessMove(startPos, endPos, promo);
             try {
                 chessGame.makeMove(matchingMove);
             } catch (InvalidMoveException e) {
@@ -279,6 +258,15 @@ public class GameWebSocketEndpoint {
         } catch (DataAccessException ex) {
             sendError(ctx, "error: server data error");
         }
+    }
+
+    private ChessPosition parseAlg(String str) {
+        if (str == null || !str.matches("^[a-h][1-8]$")) {
+            return null;
+        }
+        int col = (str.charAt(0) - 'a') + 1;
+        int row = Character.getNumericValue(str.charAt(1)) - 1;
+        return new ChessPosition(col, row);
     }
 
     private void sendError(WsContext ctx, String msg) {

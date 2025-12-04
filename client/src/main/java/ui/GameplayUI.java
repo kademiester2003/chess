@@ -5,9 +5,6 @@ import websocket.commands.MakeMoveCommand;
 
 import java.util.Scanner;
 
-/**
- * Simple console UI to demonstrate WebSocket commands.
- */
 public class GameplayUI {
     private final ChessWS ws;
     private final Scanner scanner = new Scanner(System.in);
@@ -30,12 +27,18 @@ public class GameplayUI {
             String line = scanner.nextLine().trim();
             if (line.equalsIgnoreCase("help")) {
                 printHelp();
-            } else if (line.equalsIgnoreCase("redraw")) {
+            }
+
+            else if (line.equalsIgnoreCase("redraw")) {
                 System.out.println("Requesting redraw (send a CONNECT again to force LOAD_GAME).");
                 ws.sendConnect(authToken, gameID);
-            } else if (line.equalsIgnoreCase("leave")) {
+            }
+
+            else if (line.equalsIgnoreCase("leave")) {
                 ws.sendLeave(authToken, gameID);
-            } else if (line.equalsIgnoreCase("resign")) {
+            }
+
+            else if (line.equalsIgnoreCase("resign")) {
                 System.out.print("Confirm resign? (y/N): ");
                 String yn = scanner.nextLine().trim();
                 if (yn.equalsIgnoreCase("y")) {
@@ -43,39 +46,47 @@ public class GameplayUI {
                 } else {
                     System.out.println("Resign cancelled.");
                 }
-            } else if (line.toLowerCase().startsWith("move")) {
-                // expected: move e2 e4  (simple algebraic split)
+            }
+
+            else if (line.toLowerCase().startsWith("move")) {
                 String[] parts = line.split("\\s+");
-                if (parts.length >= 3) {
-                    MakeMoveCommand.ChessMoveDto move = new MakeMoveCommand.ChessMoveDto();
-                    move.start = parseSquare(parts[1]);
-                    move.end = parseSquare(parts[2]);
-                    if (parts.length == 4) move.promotion = parts[3];
-                    ws.sendMakeMove(authToken, gameID, move);
-                } else {
+                if (parts.length < 3) {
                     System.out.println("Usage: move <from> <to> [promotion], example: move e2 e4");
+                    return;
                 }
-            } else if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+
+                String start = parts[1].toLowerCase();
+                String end = parts[2].toLowerCase();
+
+                if (!isValidAlg(start) ||  !isValidAlg(end)) {
+                    System.out.println("Invalid input.");
+                    return;
+                }
+
+                MakeMoveCommand.Move move = new MakeMoveCommand.Move();
+                move.start = start;
+                move.end = end;
+
+                if (parts.length >= 4) {
+                    move.promotion = parts[3].toLowerCase();
+                }
+
+                ws.sendMakeMove(authToken, gameID, move);
+            }
+
+            else if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
                 try { ws.close(); } catch (Exception ignored) {}
                 break;
-            } else {
+            }
+
+            else {
                 System.out.println("Unknown command. Type 'help' to list commands.");
             }
         }
     }
 
-    private MakeMoveCommand.ChessMoveDto.Square parseSquare(String alg) {
-        // very simple parser: file letter + rank number, e.g. e2
-        MakeMoveCommand.ChessMoveDto.Square s = new MakeMoveCommand.ChessMoveDto.Square();
-        if (alg.length() >= 2) {
-            char file = alg.charAt(0);
-            char rank = alg.charAt(1);
-            s.col = file - 'a';
-            s.row = Character.getNumericValue(rank) - 1;
-        } else {
-            s.col = 0; s.row = 0;
-        }
-        return s;
+    private boolean isValidAlg(String str) {
+        return str.matches("[a-h][1-8]$");
     }
 
     private void printHelp() {
