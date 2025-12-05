@@ -25,7 +25,6 @@ public class ChessWS implements WebSocket.Listener {
         this.uri = URI.create(url);
     }
 
-    // Connect using Java's built-in WebSocket client
     public void connect() {
         this.socket = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, this).join();
         System.out.println("[ws] connected");
@@ -94,7 +93,7 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     private void sendJson(Object obj) {
-        if (socket == null) return;
+        if (socket == null) {return;}
         String json = gson.toJson(obj);
         socket.sendText(json, true);
     }
