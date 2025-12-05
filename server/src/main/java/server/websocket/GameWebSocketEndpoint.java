@@ -20,7 +20,7 @@ import websocket.messages.ServerMessage;
 
 public class GameWebSocketEndpoint {
     private static final Gson GSON = new GsonBuilder().create();
-    private static final ConcurrentHashMap<Integer, GameConnections> games = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, GameConnections> Games = new ConcurrentHashMap<>();
     private final DataAccess dao;
 
     public GameWebSocketEndpoint(DataAccess dao) {
@@ -107,7 +107,7 @@ public class GameWebSocketEndpoint {
             Game game = requireGame(gameID, ctx);
             if (game == null) {return;}
 
-            GameConnections gc = games.compute(gameID, (id, existing) ->
+            GameConnections gc = Games.compute(gameID, (id, existing) ->
                     existing != null ? existing : new GameConnections(gameID));
 
             gc.addSession(ctx, auth.username());
@@ -134,7 +134,7 @@ public class GameWebSocketEndpoint {
             Auth auth = requireAuth(token, ctx);
             if (auth == null) {return;}
 
-            GameConnections gc = games.get(gameID);
+            GameConnections gc = Games.get(gameID);
             if (gc == null) {
                 sendError(ctx, "error: game not found");
                 return;
@@ -192,7 +192,7 @@ public class GameWebSocketEndpoint {
             dao.updateGame(new Game(model.gameID(), model.whiteUsername(),
                     model.blackUsername(), model.gameName(), null));
 
-            GameConnections gc = games.get(gameID);
+            GameConnections gc = Games.get(gameID);
             if (gc != null) {
                 gc.broadcastNotification(new NotificationMessage(username + " resigned"));
             }
@@ -259,7 +259,7 @@ public class GameWebSocketEndpoint {
 
             Game fresh = dao.getGame(gameID);
 
-            GameConnections gc = games.get(gameID);
+            GameConnections gc = Games.get(gameID);
             if (gc != null) {
                 gc.broadcastJson(new LoadGameMessage(fresh));
 
