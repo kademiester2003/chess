@@ -84,7 +84,12 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            GameConnections gc = games.computeIfAbsent(gameID, id -> new GameConnections(gameID));
+            GameConnections gc = games.compute(gameID, (id, existing) -> {
+                if (existing == null) {
+                    return new GameConnections(gameID);
+                }
+                return existing;
+            });
             gc.addSession(ctx, auth.username());
 
             LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(game));

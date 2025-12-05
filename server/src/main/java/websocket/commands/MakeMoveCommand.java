@@ -1,6 +1,7 @@
 package websocket.commands;
 
 import chess.ChessPosition;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.Objects;
 
@@ -40,7 +41,9 @@ public class MakeMoveCommand {
     }
 
     public static class Move {
+        @SerializedName("startPosition")
         public ChessPosition start;
+        @SerializedName("endPosition")
         public ChessPosition end;
         public String promotion;
 
