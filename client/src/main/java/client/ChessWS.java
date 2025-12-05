@@ -6,7 +6,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
 import websocket.messages.LoadGameMessage;
 import websocket.messages.ErrorMessage;
@@ -104,14 +103,14 @@ public class ChessWS implements WebSocket.Listener {
         sendJson(new UserGameCommand(UserGameCommand.CommandType.RESIGN, token, gameID));
     }
 
-    public void sendMakeMove(String token, int gameID, MakeMoveCommand.Move move) {
-        sendJson(new MakeMoveCommand(
-                MakeMoveCommand.CommandType.MAKE_MOVE,
+    public void sendMakeMove(String token, int gameID, UserGameCommand.Move move) {
+        sendJson(new UserGameCommand(
+                UserGameCommand.CommandType.MAKE_MOVE,
                 token, gameID, move));
     }
 
     private void sendJson(Object obj) {
-        if (socket == null) return;
+        if (socket == null) {return;}
         socket.sendText(gson.toJson(obj), true);
     }
 

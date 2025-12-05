@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.javalin.websocket.*;
 import model.Auth;
 import model.Game;
-import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ErrorMessage;
 import websocket.messages.LoadGameMessage;
@@ -48,7 +47,7 @@ public class GameWebSocketEndpoint {
             case "CONNECT" -> handleConnect(ctx, GSON.fromJson(root, UserGameCommand.class));
             case "LEAVE" -> handleLeave(ctx, GSON.fromJson(root, UserGameCommand.class));
             case "RESIGN" -> handleResign(ctx, GSON.fromJson(root, UserGameCommand.class));
-            case "MAKE_MOVE" -> handleMakeMove(ctx, GSON.fromJson(root, MakeMoveCommand.class));
+            case "MAKE_MOVE" -> handleMakeMove(ctx, GSON.fromJson(root, UserGameCommand.class));
             default -> sendError(ctx, "error: unknown command");
         }
     }
@@ -202,7 +201,7 @@ public class GameWebSocketEndpoint {
         }
     }
 
-    private void handleMakeMove(WsContext ctx, MakeMoveCommand cmd) {
+    private void handleMakeMove(WsContext ctx, UserGameCommand cmd) {
         if (requireCommand(cmd, ctx)) {return;}
 
         Integer gameID = cmd.getGameID();

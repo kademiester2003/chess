@@ -3,7 +3,7 @@ package ui;
 import chess.*;
 import client.ChessWS;
 import client.BoardDrawer;
-import websocket.commands.MakeMoveCommand;
+import websocket.commands.UserGameCommand;
 
 import java.util.Collection;
 import java.util.Scanner;
@@ -96,7 +96,7 @@ public class GameplayUI {
         ChessPosition startPos = parseAlg(start);
         ChessPosition endPos = parseAlg(end);
 
-        MakeMoveCommand.Move move = new MakeMoveCommand.Move();
+        UserGameCommand.Move move = new UserGameCommand.Move();
         move.start = startPos;
         move.end = endPos;
         move.promotion = (promotion != null) ? promotion.name() : null;
@@ -104,7 +104,6 @@ public class GameplayUI {
         ws.sendMakeMove(authToken, gameID, move);
     }
 
-    /** Client-only highlight feature **/
     private void handleHighlight(String line) {
         String[] parts = line.split("\\s+");
 
@@ -158,6 +157,5 @@ public class GameplayUI {
         System.out.println("  resign                   - resign the game");
         System.out.println("  move <from> <to> [promo] - make a move (e.g., move e2 e4)");
         System.out.println("  highlight <square>       - highlight legal moves of a piece (local only)");
-        System.out.println("  quit / exit              - close the client");
     }
 }

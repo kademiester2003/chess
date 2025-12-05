@@ -1,25 +1,26 @@
 package websocket.commands;
 
+import chess.ChessPosition;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Objects;
 
-/**
- * Represents a command a user can send the server over a websocket
- * <p>
- * Note: You can add to this class, but you should not alter the existing
- * methods.
- */
 public class UserGameCommand {
 
     private final CommandType commandType;
-
     private final String authToken;
-
     private final Integer gameID;
+    public final Move move;
 
     public UserGameCommand(CommandType commandType, String authToken, Integer gameID) {
+        this(commandType, authToken, gameID, null);
+    }
+
+    public UserGameCommand(CommandType commandType, String authToken, Integer gameID, Move move) {
         this.commandType = commandType;
         this.authToken = authToken;
         this.gameID = gameID;
+        this.move = move;
     }
 
     public enum CommandType {
@@ -41,21 +42,54 @@ public class UserGameCommand {
         return gameID;
     }
 
+    /** Added to preserve MakeMoveCommand functionality */
+    public Move getMove() {
+        return move;
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof UserGameCommand that)) {
-            return false;
-        }
-        return getCommandType() == that.getCommandType() &&
-                Objects.equals(getAuthToken(), that.getAuthToken()) &&
-                Objects.equals(getGameID(), that.getGameID());
+        if (this == o) { return true; }
+        if (!(o instanceof UserGameCommand that)) { return false; }
+        return getCommandType() == that.getCommandType()
+                && Objects.equals(getAuthToken(), that.getAuthToken())
+                && Objects.equals(getGameID(), that.getGameID())
+                && Objects.equals(getMove(), that.getMove());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getCommandType(), getAuthToken(), getGameID());
+        return Objects.hash(getCommandType(), getAuthToken(), getGameID(), getMove());
+    }
+
+    public static class Move {
+        @SerializedName("startPosition")
+        public ChessPosition start;
+
+        @SerializedName("endPosition")
+        public ChessPosition end;
+
+        public String promotion;
+
+        public String toReadable() {
+            if (promotion != null) {
+                return start + " -> " + end + " promote=" + promotion;
+            }
+            return start + " -> " + end;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) { return true; }
+            if (!(o instanceof Move that)) { return false; }
+            return Objects.equals(start, that.start)
+                    && Objects.equals(end, that.end)
+                    && Objects.equals(promotion, that.promotion);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(start, end, promotion);
+        }
     }
 }
