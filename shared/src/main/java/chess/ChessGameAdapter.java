@@ -1,33 +1,35 @@
 package chess;
 
 import com.google.gson.*;
-
 import java.lang.reflect.Type;
 
 public class ChessGameAdapter implements JsonSerializer<ChessGame>, JsonDeserializer<ChessGame> {
 
     @Override
-    public JsonElement serialize(ChessGame src, Type type, JsonSerializationContext context) {
-        return context.serialize(src.getBoard());
+    public JsonElement serialize(ChessGame src, Type typeOfSrc, JsonSerializationContext ctx) {
+        JsonObject obj = new JsonObject();
+
+        obj.add("board", ctx.serialize(src.getBoard()));
+        obj.addProperty("teamTurn", src.getTeamTurn().name());
+
+        return obj;
     }
 
     @Override
-    public ChessGame deserialize(JsonElement json, Type type, JsonDeserializationContext context)
+    public ChessGame deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx)
             throws JsonParseException {
 
-        ChessBoard board = context.deserialize(json, ChessBoard.class);
+        JsonObject obj = json.getAsJsonObject();
+
+        ChessBoard board = ctx.deserialize(obj.get("board"), ChessBoard.class);
+
+        ChessGame.TeamColor turn =
+                ChessGame.TeamColor.valueOf(obj.get("teamTurn").getAsString());
+
         ChessGame game = new ChessGame();
         game.setBoard(board);
-        return game;
-    }
+        game.setTeamTurn(turn);
 
-    // WebSocket helper used in GameWebSocketEndpoint
-    public static boolean tryApplyMove(ChessGame game, ChessMove move) {
-        try {
-            game.makeMove(move);
-            return true;
-        } catch (InvalidMoveException ex) {
-            return false;
-        }
+        return game;
     }
 }

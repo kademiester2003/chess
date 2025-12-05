@@ -61,7 +61,7 @@ public class GameplayUI {
                 String start = parts[1].toLowerCase();
                 String end = parts[2].toLowerCase();
 
-                if (!isValidAlg(start) ||  !isValidAlg(end)) {
+                if (!isValidAlg(start) || !isValidAlg(end)) {
                     System.out.println("Invalid input.");
                     return;
                 }
@@ -88,7 +88,9 @@ public class GameplayUI {
             }
 
             else if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-                try { ws.close(); } catch (Exception ignored) {}
+                try {
+                    ws.close();
+                } catch (Exception ignored) {}
                 break;
             }
 
