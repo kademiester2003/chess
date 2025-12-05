@@ -171,8 +171,6 @@ public class GameWebSocketEndpoint {
             if (gc != null) {
                 String msg = auth.username() + " resigned";
                 gc.broadcastNotification(new NotificationMessage(msg));
-                //LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(model));
-                //gc.broadcastJson(load);
             }
         } catch (DataAccessException ex) {
             sendError(ctx, "error: server data error");
@@ -181,7 +179,7 @@ public class GameWebSocketEndpoint {
 
     private void handleMakeMove(WsContext ctx, MakeMoveCommand cmd) {
         if (cmd == null) {
-            sendError(ctx, "error: invalid command");
+            sendError(ctx, "error: invalid move");
             return;
         }
         Integer gameID = cmd.getGameID();
@@ -201,7 +199,8 @@ public class GameWebSocketEndpoint {
             }
 
             String username = auth.username();
-            ChessGame.TeamColor playerTeam = null;
+            ChessGame.TeamColor playerTeam;
+
             if (username.equals(model.whiteUsername())) {
                 playerTeam = ChessGame.TeamColor.WHITE;
             } else if (username.equals(model.blackUsername())) {
@@ -217,40 +216,44 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            if (chessGame.getTeamTurn() != playerTeam) {
-                sendError(ctx, "error: not your turn");
-                return;
-            }
-
             var dto = cmd.move;
             if (dto == null || dto.start == null || dto.end == null) {
                 sendError(ctx, "error: missing move data");
                 return;
             }
 
-            ChessPosition startPos = dto.start;
-            ChessPosition endPos = dto.end;
+            if (chessGame.getTeamTurn() != playerTeam) {
+                sendError(ctx, "error: not your turn");
+                return;
+            }
 
             ChessPiece.PieceType promo = null;
             if (dto.promotion != null) {
-                promo = ChessPiece.PieceType.valueOf(dto.promotion.toUpperCase());
+                try {
+                    promo = ChessPiece.PieceType.valueOf(dto.promotion.toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                    sendError(ctx, "error: illegal move");
+                    return;
+                }
             }
 
-            ChessMove matchingMove = new ChessMove(startPos, endPos, promo);
+            ChessMove move = new ChessMove(dto.start, dto.end, promo);
+
             try {
-                chessGame.makeMove(matchingMove);
-            } catch (InvalidMoveException e) {
-                sendError(ctx, "error: illegal move");
+                chessGame.makeMove(move);
+            } catch (InvalidMoveException ex) {
+                sendError(ctx, "error: invalid move");
                 return;
             }
 
             Game updated = new Game(model.gameID(), model.whiteUsername(), model.blackUsername(), model.gameName(), chessGame);
             dao.updateGame(updated);
+            Game fresh = dao.getGame(gameID);
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
-                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(dao.getGame(gameID)));
-                gc.broadcastJsonExcept(load, ctx);
+                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(fresh));
+                gc.broadcastJson(load);
 
                 String moveText = auth.username() + " moved " + dto.toReadable();
                 gc.broadcastNotificationExcept(new NotificationMessage(moveText), ctx);
@@ -259,15 +262,6 @@ public class GameWebSocketEndpoint {
         } catch (DataAccessException ex) {
             sendError(ctx, "error: server data error");
         }
-    }
-
-    private ChessPosition parseAlg(String str) {
-        if (str == null || !str.matches("^[a-h][1-8]$")) {
-            return null;
-        }
-        int col = (str.charAt(0) - 'a') + 1;
-        int row = Character.getNumericValue(str.charAt(1)) - 1;
-        return new ChessPosition(row, col);
     }
 
     private void sendError(WsContext ctx, String msg) {
