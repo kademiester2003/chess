@@ -171,8 +171,8 @@ public class GameWebSocketEndpoint {
             if (gc != null) {
                 String msg = auth.username() + " resigned";
                 gc.broadcastNotification(new NotificationMessage(msg));
-                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(model));
-                gc.broadcastJson(load);
+                //LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(model));
+                //gc.broadcastJson(load);
             }
         } catch (DataAccessException ex) {
             sendError(ctx, "error: server data error");
