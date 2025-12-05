@@ -6,7 +6,6 @@ import websocket.messages.NotificationMessage;
 import websocket.messages.ServerMessage;
 import io.javalin.websocket.WsContext;
 
-import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameConnections {

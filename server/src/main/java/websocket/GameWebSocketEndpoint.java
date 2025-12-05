@@ -263,7 +263,7 @@ public class GameWebSocketEndpoint {
                 gc.broadcastJson(load);
 
                 String moveText = auth.username() + " moved " + dto.toReadable();
-                gc.broadcastNotification(new NotificationMessage(moveText));
+                gc.broadcastNotificationExcept(new NotificationMessage(moveText), ctx);
             }
 
         } catch (DataAccessException ex) {
