@@ -1,6 +1,5 @@
 package ui;
 
-import chess.ChessMove;
 import chess.ChessPiece;
 import chess.ChessPosition;
 import websocket.ChessWS;

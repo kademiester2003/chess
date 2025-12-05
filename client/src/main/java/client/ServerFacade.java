@@ -6,10 +6,19 @@ import java.net.*;
 
 public class ServerFacade {
     private final String serverUrl;
+    private final String host;
+    private final String port;
+
     private final Gson gson = new Gson();
 
     public ServerFacade(String host, String port) {
+        this.host = host;
+        this.port = port;
         this.serverUrl = "http://" + host + ":" + port;
+    }
+
+    public String getWebSocketURL() {
+        return "ws://" + host + ":" + port + "/ws";
     }
 
     //data classes interface
