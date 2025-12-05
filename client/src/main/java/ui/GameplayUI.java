@@ -22,14 +22,26 @@ public class GameplayUI {
     }
 
     public void run() {
+        // Request a CONNECT — ChessWS will queue it if socket not open yet.
         ws.sendConnect(authToken, gameID);
         System.out.println("Entered gameplay UI. Type 'help' for commands.");
 
         while (ws.isConnected()) {
             System.out.print("> ");
-            String line = scanner.nextLine().trim().toLowerCase();
+            String line = scanner.nextLine();
+            if (line == null) {
+                break;
+            }
 
-            switch (line.split("\\s+")[0]) {
+            line = line.trim().toLowerCase();
+
+            if (line.isEmpty()) {
+                continue;
+            }
+
+            String cmd = line.split("\\s+")[0];
+
+            switch (cmd) {
 
                 case "help" -> printHelp();
 
@@ -42,12 +54,21 @@ public class GameplayUI {
                     }
                 }
 
-                case "leave" -> ws.sendLeave(authToken, gameID);
+                case "leave" -> {
+                    ws.sendLeave(authToken, gameID);
+                    // Confirm to the user visually that we attempted to send leave.
+                    System.out.println("Sent LEAVE request to server.");
+                    // (Optional) if you want to close the websocket locally when leaving:
+                    // ws.close();
+                }
 
                 case "resign" -> {
                     System.out.print("Confirm resign? (y/N): ");
                     if (scanner.nextLine().trim().equalsIgnoreCase("y")) {
                         ws.sendResign(authToken, gameID);
+                        System.out.println("Sent RESIGN request to server.");
+                        // (Optional) close socket after resign if desired:
+                        // ws.close();
                     } else {
                         System.out.println("Resign cancelled.");
                     }

@@ -16,6 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.net.http.WebSocket.Listener;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletableFuture;
 
 public class ChessWS implements WebSocket.Listener {
     private final URI uri;
@@ -24,6 +25,10 @@ public class ChessWS implements WebSocket.Listener {
 
     private ChessGame currentGame = null;
     private ChessGame.TeamColor perspective = ChessGame.TeamColor.WHITE;
+
+    // Pending connect info (if connect requested before socket open)
+    private String pendingToken = null;
+    private Integer pendingGameId = null;
 
     public ChessWS(String url) {
         this.uri = URI.create(url);
@@ -38,6 +43,11 @@ public class ChessWS implements WebSocket.Listener {
     public void onOpen(WebSocket ws) {
         Listener.super.onOpen(ws);
         System.out.println("[ws] open");
+
+        // If CONNECT was requested earlier, send it now.
+        if (pendingToken != null && pendingGameId != null) {
+            sendConnect(pendingToken, pendingGameId);
+        }
     }
 
     @Override
@@ -89,8 +99,21 @@ public class ChessWS implements WebSocket.Listener {
         }
     }
 
+    /**
+     * Send a CONNECT command. If socket isn't open yet, the command is queued and will be sent
+     * automatically from onOpen().
+     */
     public void sendConnect(String token, int gameID) {
-        sendJson(new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID));
+        // Save pending in case onOpen hasn't fired yet
+        this.pendingToken = token;
+        this.pendingGameId = gameID;
+
+        if (socket != null) {
+            sendJson(new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID));
+            // we consider it sent (pending cleared)
+            this.pendingToken = null;
+            this.pendingGameId = null;
+        }
     }
 
     public void sendLeave(String token, int gameID) {
@@ -105,9 +128,48 @@ public class ChessWS implements WebSocket.Listener {
         sendJson(new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, token, gameID, move));
     }
 
+    /**
+     * Send JSON over the websocket. This function logs the JSON being sent and will also
+     * report send success/failure asynchronously so the developer (you) can see whether
+     * the LEAVE/RESIGN messages actually left the client.
+     */
     private void sendJson(Object obj) {
-        if (socket == null) {return;}
-        socket.sendText(gson.toJson(obj), true);
+        if (socket == null) {
+            System.err.println("[ws] cannot send - socket is null. JSON: " + gson.toJson(obj));
+            return;
+        }
+
+        String json = gson.toJson(obj);
+        System.out.println("[ws ->] " + json);
+
+        try {
+            CompletableFuture<WebSocket> cf = socket.sendText(json, true);
+            cf.whenComplete((ws, ex) -> {
+                if (ex != null) {
+                    System.err.println("[ws] send failed: " + ex.getMessage());
+                } else {
+                    System.out.println("[ws] send completed.");
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("[ws] failed to send json: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Close the websocket if you want to explicitly close the connection from the client.
+     */
+    public void close() {
+        if (socket != null) {
+            try {
+                socket.sendClose(WebSocket.NORMAL_CLOSURE, "client closing").join();
+            } catch (Exception e) {
+                // ignore
+            } finally {
+                socket = null;
+                System.out.println("[ws] closed client-side");
+            }
+        }
     }
 
     public boolean isConnected() {
