@@ -159,6 +159,12 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
+            String username = auth.username();
+            if (!username.equals(model.whiteUsername()) && !username.equals(model.blackUsername())) {
+                sendError(ctx, "error: you are not a player in this game");
+                return;
+            }
+
             if (model.game() == null) {
                 sendError(ctx, "error: game already over");
                 return;
