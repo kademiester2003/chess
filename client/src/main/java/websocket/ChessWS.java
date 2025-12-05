@@ -33,14 +33,12 @@ public class ChessWS {
 
     @OnMessage
     public void onMessage(String message) {
-        // parse ServerMessage (polymorphic)
         try {
             ServerMessage base = gson.fromJson(message, ServerMessage.class);
             switch (base.getServerMessageType()) {
                 case LOAD_GAME -> {
                     LoadGameMessage m = gson.fromJson(message, LoadGameMessage.class);
                     System.out.println("[LOAD_GAME] gameID=" + m.getGame().gameID);
-                    // TODO: notify UI to redraw board using m.getGame()
                 }
                 case ERROR -> {
                     ErrorMessage e = gson.fromJson(message, ErrorMessage.class);

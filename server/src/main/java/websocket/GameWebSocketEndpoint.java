@@ -27,9 +27,7 @@ public class GameWebSocketEndpoint {
         this.dao = dao;
     }
 
-    public void onConnect(WsConnectContext ctx) {
-        System.out.println("Client connected: " + ctx.session.getIdleTimeout());
-    }
+    public void onConnect(WsConnectContext ctx) {}
 
     public void onMessage(WsMessageContext ctx, String msg) {
         JsonObject root;
@@ -55,13 +53,9 @@ public class GameWebSocketEndpoint {
         }
     }
 
-    public void onClose(WsCloseContext ctx) {
-        System.out.println("Client disconnected: " + ctx.session.getIdleTimeout());
-    }
+    public void onClose(WsCloseContext ctx) {}
 
-    public void onError(WsErrorContext ctx, Throwable thr) {
-        System.err.println("Websocket ERROR: " + thr.getMessage());
-    }
+    public void onError(WsErrorContext ctx, Throwable thr) {}
 
     private void handleConnect(WsContext ctx, UserGameCommand cmd) {
         if (cmd == null) {
@@ -84,20 +78,15 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            GameConnections gc = games.compute(gameID, (id, existing) -> {
-                if (existing == null) {
-                    return new GameConnections(gameID);
-                }
-                return existing;
-            });
+            GameConnections gc = games.compute(gameID, (id, existing) -> existing != null ? existing : new GameConnections(gameID));
             gc.addSession(ctx, auth.username());
 
             LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(game));
             sendJson(ctx, load);
 
             String side = gc.getSideForUsername(auth.username(), game);
-            String notifText = auth.username() + " connected as " + side;
-            gc.broadcastNotificationExcept(new NotificationMessage(notifText), ctx);
+            gc.broadcastNotificationExcept(new NotificationMessage(auth.username() + "connected as" + side), ctx);
+
         } catch (DataAccessException ex) {
             sendError(ctx, "error: server data error");
         }
@@ -255,12 +244,13 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            dao.updateGame(model);
+            Game updated = new Game(model.gameID(), model.whiteUsername(), model.blackUsername(), model.gameName(), chessGame);
+            dao.updateGame(updated);
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
                 LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(dao.getGame(gameID)));
-                gc.broadcastJson(load);
+                gc.broadcastJsonExcept(load, ctx);
 
                 String moveText = auth.username() + " moved " + dto.toReadable();
                 gc.broadcastNotificationExcept(new NotificationMessage(moveText), ctx);
