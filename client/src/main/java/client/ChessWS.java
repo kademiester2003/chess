@@ -30,10 +30,7 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     public void connect() {
-        this.socket = HttpClient.newHttpClient()
-                .newWebSocketBuilder()
-                .buildAsync(uri, this)
-                .join();
+        this.socket = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, this).join();
         System.out.println("[ws] connected");
     }
 
@@ -71,6 +68,7 @@ public class ChessWS implements WebSocket.Listener {
                     }
 
                     System.out.println("[LOAD_GAME] Updated local game state.");
+                    BoardDrawer.drawBoard(this.currentGame, this.perspective);
                 }
 
                 case "ERROR" -> {
@@ -104,9 +102,7 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     public void sendMakeMove(String token, int gameID, UserGameCommand.Move move) {
-        sendJson(new UserGameCommand(
-                UserGameCommand.CommandType.MAKE_MOVE,
-                token, gameID, move));
+        sendJson(new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, token, gameID, move));
     }
 
     private void sendJson(Object obj) {
@@ -116,12 +112,6 @@ public class ChessWS implements WebSocket.Listener {
 
     public boolean isConnected() {
         return socket != null;
-    }
-
-    public void close() {
-        if (socket != null) {
-            socket.sendClose(WebSocket.NORMAL_CLOSURE, "bye");
-        }
     }
 
     public ChessGame getCurrentGame() {

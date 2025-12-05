@@ -57,11 +57,6 @@ public class GameplayUI {
 
                 case "highlight" -> handleHighlight(line);
 
-                case "quit", "exit" -> {
-                    try { ws.close(); } catch (Exception ignored) {}
-                    return;
-                }
-
                 default -> System.out.println("Unknown command. Type 'help' to list commands.");
             }
         }

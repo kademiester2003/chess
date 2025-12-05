@@ -42,7 +42,6 @@ public class UserGameCommand {
         return gameID;
     }
 
-    /** Added to preserve MakeMoveCommand functionality */
     public Move getMove() {
         return move;
     }

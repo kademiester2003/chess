@@ -3,7 +3,6 @@ package client;
 import chess.ChessGame;
 import client.ServerFacade.*;
 import ui.GameplayUI;
-import client.BoardDrawer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
