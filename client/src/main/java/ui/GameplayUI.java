@@ -1,5 +1,8 @@
 package ui;
 
+import chess.ChessMove;
+import chess.ChessPiece;
+import chess.ChessPosition;
 import websocket.ChessWS;
 import websocket.commands.MakeMoveCommand;
 
@@ -63,13 +66,23 @@ public class GameplayUI {
                     return;
                 }
 
-                MakeMoveCommand.Move move = new MakeMoveCommand.Move();
-                move.start = start;
-                move.end = end;
-
+                ChessPiece.PieceType promotion = null;
                 if (parts.length >= 4) {
-                    move.promotion = parts[3].toLowerCase();
+                    try {
+                        promotion = ChessPiece.PieceType.valueOf(parts[3].toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("Invalid promotion.");
+                        return;
+                    }
                 }
+
+                ChessPosition startPos = parseAlg(start);
+                ChessPosition endPos = parseAlg(end);
+
+                MakeMoveCommand.Move move = new MakeMoveCommand.Move();
+                move.start = startPos;
+                move.end = endPos;
+                move.promotion = (promotion != null) ? promotion.name() : null;
 
                 ws.sendMakeMove(authToken, gameID, move);
             }
@@ -87,6 +100,12 @@ public class GameplayUI {
 
     private boolean isValidAlg(String str) {
         return str.matches("[a-h][1-8]$");
+    }
+
+    private ChessPosition parseAlg(String str) {
+        int col = (str.charAt(0) - 'a') + 1;
+        int row = Character.getNumericValue(str.charAt(1));
+        return new ChessPosition(row, col);
     }
 
     private void printHelp() {

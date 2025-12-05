@@ -1,5 +1,7 @@
 package websocket.commands;
 
+import chess.ChessPosition;
+
 import java.util.Objects;
 
 public class MakeMoveCommand {
@@ -38,8 +40,8 @@ public class MakeMoveCommand {
     }
 
     public static class Move {
-        public String start;
-        public String end;
+        public ChessPosition start;
+        public ChessPosition end;
         public String promotion;
 
         public String toReadable() {

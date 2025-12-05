@@ -228,8 +228,8 @@ public class GameWebSocketEndpoint {
                 return;
             }
 
-            ChessPosition startPos = parseAlg(dto.start);
-            ChessPosition endPos = parseAlg(dto.start);
+            ChessPosition startPos = dto.start;
+            ChessPosition endPos = dto.end;
 
             ChessPiece.PieceType promo = null;
             if (dto.promotion != null) {
@@ -266,7 +266,7 @@ public class GameWebSocketEndpoint {
         }
         int col = (str.charAt(0) - 'a') + 1;
         int row = Character.getNumericValue(str.charAt(1)) - 1;
-        return new ChessPosition(col, row);
+        return new ChessPosition(row, col);
     }
 
     private void sendError(WsContext ctx, String msg) {
