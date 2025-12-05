@@ -95,7 +95,7 @@ public class GameWebSocketEndpoint {
     }
 
     private void handleConnect(WsContext ctx, UserGameCommand cmd) {
-        if (requireCommand(cmd, ctx)) return;
+        if (requireCommand(cmd, ctx)) {return;}
 
         Integer gameID = cmd.getGameID();
         String token = cmd.getAuthToken();
@@ -165,7 +165,7 @@ public class GameWebSocketEndpoint {
     }
 
     private void handleResign(WsContext ctx, UserGameCommand cmd) {
-        if (requireCommand(cmd, ctx)) return;
+        if (requireCommand(cmd, ctx)) {return;}
 
         Integer gameID = cmd.getGameID();
         String token = cmd.getAuthToken();

@@ -9,7 +9,7 @@ import io.javalin.websocket.WsContext;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameConnections {
-    private static final Gson gson = new Gson();
+    private static final Gson GSON = new Gson();
     private final int gameID;
     private final ConcurrentHashMap<WsContext, String> sessions = new ConcurrentHashMap<>();
 
@@ -30,7 +30,7 @@ public class GameConnections {
     }
 
     public void broadcastJson(ServerMessage msg) {
-        String json = gson.toJson(msg);
+        String json = GSON.toJson(msg);
         for (WsContext s : sessions.keySet()) {
             try {
                 s.send(json);
@@ -39,7 +39,7 @@ public class GameConnections {
     }
 
     public void broadcastJsonExcept(ServerMessage msg, WsContext except) {
-        String json = gson.toJson(msg);
+        String json = GSON.toJson(msg);
         for (WsContext s : sessions.keySet()) {
             if (s.equals(except)) {continue;}
             try {
