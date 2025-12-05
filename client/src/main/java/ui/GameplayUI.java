@@ -2,7 +2,7 @@ package ui;
 
 import chess.ChessPiece;
 import chess.ChessPosition;
-import websocket.ChessWS;
+import client.ChessWS;
 import websocket.commands.MakeMoveCommand;
 
 import java.util.Scanner;

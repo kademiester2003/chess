@@ -1,4 +1,4 @@
-package websocket;
+package client;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -55,7 +55,7 @@ public class ChessWS implements WebSocket.Listener {
             switch (type) {
                 case "LOAD_GAME" -> {
                     LoadGameMessage m = gson.fromJson(json, LoadGameMessage.class);
-                    System.out.println("[LOAD_GAME] gameID=" + m.getGame().gameID);
+                    System.out.println("[LOAD_GAME] gameID=" + m.getGame().gameID());
                 }
                 case "ERROR" -> {
                     ErrorMessage e = gson.fromJson(json, ErrorMessage.class);

@@ -1,4 +1,4 @@
-package websocket;
+package server.websocket;
 
 import chess.*;
 import com.google.gson.*;
@@ -81,7 +81,7 @@ public class GameWebSocketEndpoint {
             GameConnections gc = games.compute(gameID, (id, existing) -> existing != null ? existing : new GameConnections(gameID));
             gc.addSession(ctx, auth.username());
 
-            LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(game));
+            LoadGameMessage load = new LoadGameMessage(game);
             sendJson(ctx, load);
 
             String side = gc.getSideForUsername(auth.username(), game);
@@ -252,7 +252,7 @@ public class GameWebSocketEndpoint {
 
             GameConnections gc = games.get(gameID);
             if (gc != null) {
-                LoadGameMessage load = new LoadGameMessage(GameDTO.fromModel(fresh));
+                LoadGameMessage load = new LoadGameMessage(fresh);
                 gc.broadcastJson(load);
 
                 String moveText = auth.username() + " moved " + dto.toReadable();

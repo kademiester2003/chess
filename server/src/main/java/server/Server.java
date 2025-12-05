@@ -9,7 +9,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import service.UserService;
 import service.GameService;
-import websocket.GameWebSocketEndpoint;
+import server.websocket.GameWebSocketEndpoint;
 
 public class Server {
 
