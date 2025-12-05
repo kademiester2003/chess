@@ -27,10 +27,7 @@ public class ChessWS implements WebSocket.Listener {
 
     // Connect using Java's built-in WebSocket client
     public void connect() {
-        this.socket = HttpClient.newHttpClient()
-                .newWebSocketBuilder()
-                .buildAsync(uri, this)
-                .join();
+        this.socket = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, this).join();
         System.out.println("[ws] connected");
     }
 
@@ -74,8 +71,7 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     public void sendConnect(String token, int gameID) {
-        UserGameCommand cmd =
-                new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID);
+        UserGameCommand cmd = new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID);
         sendJson(cmd);
     }
 
