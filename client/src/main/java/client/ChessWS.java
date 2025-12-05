@@ -1,5 +1,7 @@
 package client;
 
+import chess.ChessGame;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -21,12 +23,18 @@ public class ChessWS implements WebSocket.Listener {
     private WebSocket socket;
     private final Gson gson = new Gson();
 
+    private ChessGame currentGame = null;
+    private ChessGame.TeamColor perspective = ChessGame.TeamColor.WHITE;
+
     public ChessWS(String url) {
         this.uri = URI.create(url);
     }
 
     public void connect() {
-        this.socket = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, this).join();
+        this.socket = HttpClient.newHttpClient()
+                .newWebSocketBuilder()
+                .buildAsync(uri, this)
+                .join();
         System.out.println("[ws] connected");
     }
 
@@ -49,53 +57,62 @@ public class ChessWS implements WebSocket.Listener {
             String type = obj.get("serverMessageType").getAsString();
 
             switch (type) {
+
                 case "LOAD_GAME" -> {
                     LoadGameMessage m = gson.fromJson(json, LoadGameMessage.class);
-                    System.out.println("[LOAD_GAME] gameID=" + m.getGame().gameID());
+
+                    this.currentGame = m.getGame().game();
+
+                    if (m.getGame().whiteUsername() != null &&
+                            m.getGame().whiteUsername().equalsIgnoreCase(m.getGame().currentUser())) {
+                        this.perspective = ChessGame.TeamColor.WHITE;
+                    } else if (m.getGame().blackUsername() != null &&
+                            m.getGame().blackUsername().equalsIgnoreCase(m.getGame().currentUser())) {
+                        this.perspective = ChessGame.TeamColor.BLACK;
+                    }
+
+                    System.out.println("[LOAD_GAME] Updated local game state.");
                 }
+
                 case "ERROR" -> {
                     ErrorMessage e = gson.fromJson(json, ErrorMessage.class);
                     System.err.println("[ERROR] " + e.getErrorMessage());
                 }
+
                 case "NOTIFICATION" -> {
                     NotificationMessage n = gson.fromJson(json, NotificationMessage.class);
                     System.out.println("[NOTIFICATION] " + n.getMessage());
                 }
+
                 default -> System.out.println("[UNKNOWN] " + json);
             }
         } catch (Exception ex) {
-            System.err.println("Failed to parse: " + ex.getMessage());
+            System.err.println("Failed to parse WS message: " + ex.getMessage());
             System.err.println("Raw: " + json);
         }
     }
 
     public void sendConnect(String token, int gameID) {
-        UserGameCommand cmd = new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID);
-        sendJson(cmd);
+        sendJson(new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID));
     }
 
     public void sendLeave(String token, int gameID) {
-        UserGameCommand cmd =
-                new UserGameCommand(UserGameCommand.CommandType.LEAVE, token, gameID);
-        sendJson(cmd);
+        sendJson(new UserGameCommand(UserGameCommand.CommandType.LEAVE, token, gameID));
     }
 
     public void sendResign(String token, int gameID) {
-        UserGameCommand cmd =
-                new UserGameCommand(UserGameCommand.CommandType.RESIGN, token, gameID);
-        sendJson(cmd);
+        sendJson(new UserGameCommand(UserGameCommand.CommandType.RESIGN, token, gameID));
     }
 
     public void sendMakeMove(String token, int gameID, MakeMoveCommand.Move move) {
-        MakeMoveCommand cmd =
-                new MakeMoveCommand(MakeMoveCommand.CommandType.MAKE_MOVE, token, gameID, move);
-        sendJson(cmd);
+        sendJson(new MakeMoveCommand(
+                MakeMoveCommand.CommandType.MAKE_MOVE,
+                token, gameID, move));
     }
 
     private void sendJson(Object obj) {
-        if (socket == null) {return;}
-        String json = gson.toJson(obj);
-        socket.sendText(json, true);
+        if (socket == null) return;
+        socket.sendText(gson.toJson(obj), true);
     }
 
     public boolean isConnected() {
@@ -106,5 +123,13 @@ public class ChessWS implements WebSocket.Listener {
         if (socket != null) {
             socket.sendClose(WebSocket.NORMAL_CLOSURE, "bye");
         }
+    }
+
+    public ChessGame getCurrentGame() {
+        return currentGame;
+    }
+
+    public ChessGame.TeamColor getPerspective() {
+        return perspective;
     }
 }

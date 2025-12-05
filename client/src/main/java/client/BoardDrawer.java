@@ -3,6 +3,8 @@ package client;
 import chess.*;
 import ui.EscapeSequences;
 
+import java.util.Collection;
+
 public class BoardDrawer {
 
     public static void drawInitialBoard(ChessGame.TeamColor perspective) {
@@ -10,17 +12,26 @@ public class BoardDrawer {
     }
 
     public static void drawBoard(ChessGame game, ChessGame.TeamColor perspective) {
-        System.out.print(EscapeSequences.ERASE_SCREEN + EscapeSequences.moveCursorToLocation(1,1));
+        drawBoardWithHighlights(game, perspective, null, null);
+    }
+
+    public static void drawBoardWithHighlights(
+            ChessGame game,
+            ChessGame.TeamColor perspective,
+            ChessPosition selected,
+            Collection<ChessMove> legalMoves
+    ) {
+        System.out.print(EscapeSequences.ERASE_SCREEN + EscapeSequences.moveCursorToLocation(1, 1));
 
         ChessBoard board = game.getBoard();
 
         int startRank = (perspective == ChessGame.TeamColor.WHITE) ? 8 : 1;
-        int endRank   = (perspective == ChessGame.TeamColor.WHITE) ? 1 : 8;
-        int rankStep  = (perspective == ChessGame.TeamColor.WHITE) ? -1 : 1;
+        int endRank = (perspective == ChessGame.TeamColor.WHITE) ? 1 : 8;
+        int rankStep = (perspective == ChessGame.TeamColor.WHITE) ? -1 : 1;
 
         int startFile = (perspective == ChessGame.TeamColor.WHITE) ? 1 : 8;
-        int endFile   = (perspective == ChessGame.TeamColor.WHITE) ? 8 : 1;
-        int fileStep  = (perspective == ChessGame.TeamColor.WHITE) ? 1 : -1;
+        int endFile = (perspective == ChessGame.TeamColor.WHITE) ? 8 : 1;
+        int fileStep = (perspective == ChessGame.TeamColor.WHITE) ? 1 : -1;
 
         System.out.println();
 
@@ -28,12 +39,23 @@ public class BoardDrawer {
             System.out.print(" " + r + " ");
 
             for (int f = startFile; f != endFile + fileStep; f += fileStep) {
-                String bg = ((r + f) % 2 == 0) ?
-                        EscapeSequences.SET_BG_COLOR_DARK_GREY :
-                        EscapeSequences.SET_BG_COLOR_LIGHT_GREY;
 
                 ChessPosition pos = new ChessPosition(r, f);
                 ChessPiece piece = board.getPiece(pos);
+
+                String bg;
+
+                if (selected != null && selected.equals(pos)) {
+                    bg = EscapeSequences.SET_BG_COLOR_BLUE;
+                }
+                else if (legalMoves != null && legalMoves.stream().anyMatch(m -> m.getEndPosition().equals(pos))) {
+                    bg = EscapeSequences.SET_BG_COLOR_GREEN;
+                }
+                else {
+                    bg = ((r + f) % 2 == 0)
+                            ? EscapeSequences.SET_BG_COLOR_DARK_GREY
+                            : EscapeSequences.SET_BG_COLOR_LIGHT_GREY;
+                }
 
                 System.out.print(bg);
 

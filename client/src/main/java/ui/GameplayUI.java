@@ -1,10 +1,11 @@
 package ui;
 
-import chess.ChessPiece;
-import chess.ChessPosition;
+import chess.*;
 import client.ChessWS;
+import client.BoardDrawer;
 import websocket.commands.MakeMoveCommand;
 
+import java.util.Collection;
 import java.util.Scanner;
 
 public class GameplayUI {
@@ -26,96 +27,137 @@ public class GameplayUI {
 
         while (ws.isConnected()) {
             System.out.print("> ");
-            String line = scanner.nextLine().trim();
-            if (line.equalsIgnoreCase("help")) {
-                printHelp();
-            }
+            String line = scanner.nextLine().trim().toLowerCase();
 
-            else if (line.equalsIgnoreCase("redraw")) {
-                System.out.println("Requesting redraw (send a CONNECT again to force LOAD_GAME).");
-                ws.sendConnect(authToken, gameID);
-            }
+            switch (line.split("\\s+")[0]) {
 
-            else if (line.equalsIgnoreCase("leave")) {
-                ws.sendLeave(authToken, gameID);
-            }
+                case "help" -> printHelp();
 
-            else if (line.equalsIgnoreCase("resign")) {
-                System.out.print("Confirm resign? (y/N): ");
-                String yn = scanner.nextLine().trim();
-                if (yn.equalsIgnoreCase("y")) {
-                    ws.sendResign(authToken, gameID);
-                } else {
-                    System.out.println("Resign cancelled.");
-                }
-            }
-
-            else if (line.toLowerCase().startsWith("move")) {
-                String[] parts = line.split("\\s+");
-                if (parts.length < 3) {
-                    System.out.println("Usage: move <from> <to> [promotion], example: move e2 e4");
-                    return;
-                }
-
-                String start = parts[1].toLowerCase();
-                String end = parts[2].toLowerCase();
-
-                if (!isValidAlg(start) || !isValidAlg(end)) {
-                    System.out.println("Invalid input.");
-                    return;
-                }
-
-                ChessPiece.PieceType promotion = null;
-                if (parts.length >= 4) {
-                    try {
-                        promotion = ChessPiece.PieceType.valueOf(parts[3].toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        System.out.println("Invalid promotion.");
-                        return;
+                case "redraw" -> {
+                    if (ws.getCurrentGame() == null) {
+                        System.out.println("Game not loaded yet. Requesting state...");
+                        ws.sendConnect(authToken, gameID);
+                    } else {
+                        BoardDrawer.drawBoard(ws.getCurrentGame(), ws.getPerspective());
                     }
                 }
 
-                ChessPosition startPos = parseAlg(start);
-                ChessPosition endPos = parseAlg(end);
+                case "leave" -> ws.sendLeave(authToken, gameID);
 
-                MakeMoveCommand.Move move = new MakeMoveCommand.Move();
-                move.start = startPos;
-                move.end = endPos;
-                move.promotion = (promotion != null) ? promotion.name() : null;
+                case "resign" -> {
+                    System.out.print("Confirm resign? (y/N): ");
+                    if (scanner.nextLine().trim().equalsIgnoreCase("y")) {
+                        ws.sendResign(authToken, gameID);
+                    } else {
+                        System.out.println("Resign cancelled.");
+                    }
+                }
 
-                ws.sendMakeMove(authToken, gameID, move);
-            }
+                case "move" -> handleMove(line);
 
-            else if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-                try {
-                    ws.close();
-                } catch (Exception ignored) {}
-                break;
-            }
+                case "highlight" -> handleHighlight(line);
 
-            else {
-                System.out.println("Unknown command. Type 'help' to list commands.");
+                case "quit", "exit" -> {
+                    try { ws.close(); } catch (Exception ignored) {}
+                    return;
+                }
+
+                default -> System.out.println("Unknown command. Type 'help' to list commands.");
             }
         }
     }
 
+    private void handleMove(String line) {
+        String[] parts = line.split("\\s+");
+
+        if (parts.length < 3) {
+            System.out.println("Usage: move <from> <to> [promotion], example: move e2 e4");
+            return;
+        }
+
+        String start = parts[1];
+        String end = parts[2];
+
+        if (!isValidAlg(start) || !isValidAlg(end)) {
+            System.out.println("Invalid coordinate. Use algebraic notation like e2.");
+            return;
+        }
+
+        ChessPiece.PieceType promotion = null;
+        if (parts.length >= 4) {
+            try {
+                promotion = ChessPiece.PieceType.valueOf(parts[3].toUpperCase());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid promotion piece. Use: QUEEN ROOK BISHOP KNIGHT");
+                return;
+            }
+        }
+
+        ChessPosition startPos = parseAlg(start);
+        ChessPosition endPos = parseAlg(end);
+
+        MakeMoveCommand.Move move = new MakeMoveCommand.Move();
+        move.start = startPos;
+        move.end = endPos;
+        move.promotion = (promotion != null) ? promotion.name() : null;
+
+        ws.sendMakeMove(authToken, gameID, move);
+    }
+
+    /** Client-only highlight feature **/
+    private void handleHighlight(String line) {
+        String[] parts = line.split("\\s+");
+
+        if (parts.length < 2) {
+            System.out.println("Usage: highlight <square>, e.g. highlight e2");
+            return;
+        }
+
+        String sq = parts[1];
+
+        if (!isValidAlg(sq)) {
+            System.out.println("Invalid square.");
+            return;
+        }
+
+        ChessPosition pos = parseAlg(sq);
+
+        ChessGame game = ws.getCurrentGame();
+        if (game == null) {
+            System.out.println("Game not yet loaded.");
+            return;
+        }
+
+        ChessPiece piece = game.getBoard().getPiece(pos);
+        if (piece == null) {
+            System.out.println("No piece on " + sq);
+            return;
+        }
+
+        Collection<ChessMove> legalMoves = piece.pieceMoves(game.getBoard(), pos);
+
+        System.out.println("Highlighting moves for piece on " + sq);
+        BoardDrawer.drawBoardWithHighlights(game, ws.getPerspective(), pos, legalMoves);
+    }
+
     private boolean isValidAlg(String str) {
-        return str.matches("[a-h][1-8]$");
+        return str.matches("[a-h][1-8]");
     }
 
     private ChessPosition parseAlg(String str) {
-        int col = (str.charAt(0) - 'a') + 1;
-        int row = Character.getNumericValue(str.charAt(1));
+        int col = str.charAt(0) - 'a' + 1;
+        int row = str.charAt(1) - '0';
         return new ChessPosition(row, col);
     }
 
     private void printHelp() {
-        System.out.println("Commands:");
-        System.out.println("  help           - show this help");
-        System.out.println("  redraw         - request redraw of the board");
-        System.out.println("  leave          - leave the game (return to post-login UI)");
-        System.out.println("  resign         - resign the game");
-        System.out.println("  move <from> <to> [promotion]  - make a move, e.g. move e2 e4");
-        System.out.println("  quit / exit    - close the client");
+        System.out.println("Gameplay Commands:");
+        System.out.println("  help                     - show this help");
+        System.out.println("  redraw                   - redraw the chess board");
+        System.out.println("  leave                    - leave the game");
+        System.out.println("  resign                   - resign the game");
+        System.out.println("  move <from> <to> [promo] - make a move (e.g., move e2 e4)");
+        System.out.println("  highlight <square>       - highlight legal moves of a piece (local only)");
+        System.out.println("  quit / exit              - close the client");
     }
 }
