@@ -140,13 +140,26 @@ public class GameWebSocketEndpoint {
 
             String username = auth.username();
 
-            // Verify that the user is actually a player in the current game model
-            if (!username.equals(model.whiteUsername()) && !username.equals(model.blackUsername())) {
-                sendError(ctx, "error: you are not a player in this game");
+            // Observers are allowed to leave without error — just remove their session and stop.
+            boolean isPlayer =
+                    username.equals(model.whiteUsername()) ||
+                            username.equals(model.blackUsername());
+
+            GameConnections gc = GAMES.get(gameID);
+            if (gc == null) {
+                // Nothing to do: no active connections for this game
                 return;
             }
 
-            GameConnections gc = GAMES.get(gameID);
+            gc.removeSession(ctx);
+
+            if (!isPlayer) {
+                gc.broadcastNotificationExcept(
+                        new NotificationMessage(username + " left the game"),
+                        ctx);
+                return; // IMPORTANT: observers do NOT touch DB or cause LOAD_GAME broadcasts
+            }
+
             if (gc == null) {
                 // If there's no connection set for this game, still attempt DB update,
                 // but inform the client it's effectively not connected.
@@ -159,19 +172,16 @@ public class GameWebSocketEndpoint {
 
             // Update the persistent game model: remove the player who left
             if (username.equals(model.whiteUsername())) {
-                dao.updateGame(new Game(model.gameID(), null,
-                        model.blackUsername(), model.gameName(), model.game()));
+                dao.updateGame(new Game(model.gameID(), null, model.blackUsername(), model.gameName(), model.game()));
             } else if (username.equals(model.blackUsername())) {
-                dao.updateGame(new Game(model.gameID(), model.whiteUsername(),
-                        null, model.gameName(), model.game()));
+                dao.updateGame(new Game(model.gameID(), model.whiteUsername(), null, model.gameName(), model.game()));
             }
 
             // Fetch the updated model and broadcast the updated state + notification
             Game fresh = dao.getGame(gameID);
             if (fresh != null) {
-                gc.broadcastJson(new LoadGameMessage(fresh));
-                gc.broadcastNotification(
-                        new NotificationMessage(auth.username() + " left the game"));
+                //gc.broadcastJson(new LoadGameMessage(fresh));
+                gc.broadcastNotification(new NotificationMessage(auth.username() + " left the game"));
             }
 
         } catch (DataAccessException ex) {
@@ -212,7 +222,6 @@ public class GameWebSocketEndpoint {
             GameConnections gc = GAMES.get(gameID);
             Game fresh = dao.getGame(gameID);
             if (gc != null && fresh != null) {
-                gc.broadcastJson(new LoadGameMessage(fresh));
                 gc.broadcastNotification(new NotificationMessage(username + " resigned"));
             }
 

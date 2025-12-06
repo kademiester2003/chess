@@ -58,8 +58,7 @@ public class GameplayUI {
                     ws.sendLeave(authToken, gameID);
                     // Confirm to the user visually that we attempted to send leave.
                     System.out.println("Sent LEAVE request to server.");
-                    // (Optional) if you want to close the websocket locally when leaving:
-                    // ws.close();
+                    ws.close();
                 }
 
                 case "resign" -> {
@@ -67,8 +66,6 @@ public class GameplayUI {
                     if (scanner.nextLine().trim().equalsIgnoreCase("y")) {
                         ws.sendResign(authToken, gameID);
                         System.out.println("Sent RESIGN request to server.");
-                        // (Optional) close socket after resign if desired:
-                        // ws.close();
                     } else {
                         System.out.println("Resign cancelled.");
                     }
