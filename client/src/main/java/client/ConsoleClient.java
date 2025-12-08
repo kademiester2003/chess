@@ -1,6 +1,5 @@
 package client;
 
-import chess.ChessGame;
 import client.ServerFacade.*;
 import ui.GameplayUI;
 
@@ -283,12 +282,8 @@ public class ConsoleClient {
 
             System.out.println("Joined game.");
 
-            boolean whitePerspective = !team.equalsIgnoreCase("BLACK");
-            BoardDrawer.drawInitialBoard(
-                    whitePerspective ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
-
             try {
-                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, chosen.gameID);
+                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, chosen.gameID, loggedInUser);
                 gameplay.run();
             } catch (Exception ex) {
                 System.out.println("Error playing game: " + ex.getMessage());
@@ -308,10 +303,9 @@ public class ConsoleClient {
 
             GameEntry g = lastGames.get(gameNum - 1);
             System.out.println("Observing: " + g.gameName);
-            BoardDrawer.drawInitialBoard(ChessGame.TeamColor.WHITE);
 
             try {
-                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, g.gameID);
+                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, g.gameID, loggedInUser);
                 gameplay.run();
             } catch (Exception ex) {
                 System.out.println("Error observing game: " + ex.getMessage());

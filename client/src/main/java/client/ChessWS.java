@@ -1,7 +1,6 @@
 package client;
 
 import chess.ChessGame;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -11,14 +10,16 @@ import websocket.messages.LoadGameMessage;
 import websocket.messages.ErrorMessage;
 import websocket.messages.NotificationMessage;
 
+import model.Game;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.net.http.WebSocket.Listener;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CompletableFuture;
 
 public class ChessWS implements WebSocket.Listener {
+
     private final URI uri;
     private WebSocket socket;
     private final Gson gson = new Gson();
@@ -26,7 +27,9 @@ public class ChessWS implements WebSocket.Listener {
     private ChessGame currentGame = null;
     private ChessGame.TeamColor perspective = ChessGame.TeamColor.WHITE;
 
-    // Pending connect info (if connect requested before socket open)
+    private String localUserToken = null;
+    private String localUsername = null;
+
     private String pendingToken = null;
     private Integer pendingGameId = null;
 
@@ -35,8 +38,19 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     public void connect() {
-        this.socket = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, this).join();
+        this.socket = HttpClient.newHttpClient()
+                .newWebSocketBuilder()
+                .buildAsync(uri, this)
+                .join();
         System.out.println("[ws] connected");
+    }
+
+    public void setLocalUserToken(String token) {
+        this.localUserToken = token;
+    }
+
+    public void setLocalUsername(String username) {
+        this.localUsername = username;
     }
 
     @Override
@@ -44,7 +58,6 @@ public class ChessWS implements WebSocket.Listener {
         Listener.super.onOpen(ws);
         System.out.println("[ws] open");
 
-        // If CONNECT was requested earlier, send it now.
         if (pendingToken != null && pendingGameId != null) {
             sendConnect(pendingToken, pendingGameId);
         }
@@ -52,8 +65,7 @@ public class ChessWS implements WebSocket.Listener {
 
     @Override
     public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
-        String json = data.toString();
-        handleMessage(json);
+        handleMessage(data.toString());
         return Listener.super.onText(ws, data, last);
     }
 
@@ -66,19 +78,14 @@ public class ChessWS implements WebSocket.Listener {
 
                 case "LOAD_GAME" -> {
                     LoadGameMessage m = gson.fromJson(json, LoadGameMessage.class);
+                    Game dbGame = m.getGame();
 
-                    this.currentGame = m.getGame().game();
+                    this.currentGame = dbGame.game();
 
-                    if (m.getGame().whiteUsername() != null &&
-                            m.getGame().whiteUsername().equalsIgnoreCase(m.getGame().currentUser())) {
-                        this.perspective = ChessGame.TeamColor.WHITE;
-                    } else if (m.getGame().blackUsername() != null &&
-                            m.getGame().blackUsername().equalsIgnoreCase(m.getGame().currentUser())) {
-                        this.perspective = ChessGame.TeamColor.BLACK;
-                    }
+                    determinePerspective(dbGame);
 
-                    System.out.println("[LOAD_GAME] Updated local game state.");
-                    BoardDrawer.drawBoard(this.currentGame, this.perspective);
+                    System.out.println("[LOAD_GAME] Game updated. Redrawing...");
+                    BoardDrawer.drawBoard(currentGame, perspective);
                 }
 
                 case "ERROR" -> {
@@ -93,26 +100,34 @@ public class ChessWS implements WebSocket.Listener {
 
                 default -> System.out.println("[UNKNOWN] " + json);
             }
+
         } catch (Exception ex) {
             System.err.println("Failed to parse WS message: " + ex.getMessage());
             System.err.println("Raw: " + json);
         }
     }
 
-    /**
-     * Send a CONNECT command. If socket isn't open yet, the command is queued and will be sent
-     * automatically from onOpen().
-     */
+    private void determinePerspective(Game dbGame) {
+        if (localUsername == null) {return;}
+
+        String white = dbGame.whiteUsername();
+        String black = dbGame.blackUsername();
+
+        if (localUsername.equals(white)) {
+            perspective = ChessGame.TeamColor.WHITE;
+        } else if (localUsername.equals(black)) {
+            perspective = ChessGame.TeamColor.BLACK;
+        }
+    }
+
     public void sendConnect(String token, int gameID) {
-        // Save pending in case onOpen hasn't fired yet
         this.pendingToken = token;
         this.pendingGameId = gameID;
 
         if (socket != null) {
             sendJson(new UserGameCommand(UserGameCommand.CommandType.CONNECT, token, gameID));
-            // we consider it sent (pending cleared)
-            this.pendingToken = null;
-            this.pendingGameId = null;
+            pendingToken = null;
+            pendingGameId = null;
         }
     }
 
@@ -128,52 +143,19 @@ public class ChessWS implements WebSocket.Listener {
         sendJson(new UserGameCommand(UserGameCommand.CommandType.MAKE_MOVE, token, gameID, move));
     }
 
-    /**
-     * Send JSON over the websocket. This function logs the JSON being sent and will also
-     * report send success/failure asynchronously so the developer (you) can see whether
-     * the LEAVE/RESIGN messages actually left the client.
-     */
     private void sendJson(Object obj) {
         if (socket == null) {
-            System.err.println("[ws] cannot send - socket is null. JSON: " + gson.toJson(obj));
+            System.err.println("[ws] cannot send - socket is null");
             return;
         }
 
         String json = gson.toJson(obj);
         System.out.println("[ws ->] " + json);
 
-        try {
-            CompletableFuture<WebSocket> cf = socket.sendText(json, true);
-            cf.whenComplete((ws, ex) -> {
-                if (ex != null) {
-                    System.err.println("[ws] send failed: " + ex.getMessage());
-                } else {
-                    System.out.println("[ws] send completed.");
-                }
-            });
-        } catch (Exception e) {
-            System.err.println("[ws] failed to send json: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Close the websocket if you want to explicitly close the connection from the client.
-     */
-    public void close() {
-        if (socket != null) {
-            try {
-                socket.sendClose(WebSocket.NORMAL_CLOSURE, "client closing").join();
-            } catch (Exception e) {
-                // ignore
-            } finally {
-                socket = null;
-                System.out.println("[ws] closed client-side");
-            }
-        }
-    }
-
-    public boolean isConnected() {
-        return socket != null;
+        socket.sendText(json, true)
+                .whenComplete((ws, ex) -> {
+                    if (ex != null) System.err.println("[ws] send failed: " + ex.getMessage());
+                });
     }
 
     public ChessGame getCurrentGame() {
@@ -182,5 +164,19 @@ public class ChessWS implements WebSocket.Listener {
 
     public ChessGame.TeamColor getPerspective() {
         return perspective;
+    }
+
+    public boolean isConnected() {
+        return socket != null;
+    }
+
+    public void close() {
+        if (socket != null) {
+            try {
+                socket.sendClose(WebSocket.NORMAL_CLOSURE, "client closing").join();
+            } catch (Exception ignored) {}
+            socket = null;
+            System.out.println("[ws] closed client-side");
+        }
     }
 }

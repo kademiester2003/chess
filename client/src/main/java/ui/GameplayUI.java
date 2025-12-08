@@ -14,35 +14,31 @@ public class GameplayUI {
     private final String authToken;
     private final int gameID;
 
-    public GameplayUI(String serverWsUrl, String authToken, int gameID) throws Exception {
+    public GameplayUI(String serverWsUrl, String authToken, int gameID, String localUsername) throws Exception {
         this.ws = new ChessWS(serverWsUrl);
+        this.ws.setLocalUsername(localUsername);
         this.authToken = authToken;
         this.gameID = gameID;
+
         ws.connect();
+        ws.setLocalUserToken(authToken);
     }
 
     public void run() {
-        // Request a CONNECT — ChessWS will queue it if socket not open yet.
         ws.sendConnect(authToken, gameID);
         System.out.println("Entered gameplay UI. Type 'help' for commands.");
 
         while (ws.isConnected()) {
             System.out.print("> ");
             String line = scanner.nextLine();
-            if (line == null) {
-                break;
-            }
+            if (line == null) break;
 
             line = line.trim().toLowerCase();
-
-            if (line.isEmpty()) {
-                continue;
-            }
+            if (line.isEmpty()) continue;
 
             String cmd = line.split("\\s+")[0];
 
             switch (cmd) {
-
                 case "help" -> printHelp();
 
                 case "redraw" -> {
@@ -56,7 +52,6 @@ public class GameplayUI {
 
                 case "leave" -> {
                     ws.sendLeave(authToken, gameID);
-                    // Confirm to the user visually that we attempted to send leave.
                     System.out.println("Sent LEAVE request to server.");
                     ws.close();
                 }
@@ -84,7 +79,7 @@ public class GameplayUI {
         String[] parts = line.split("\\s+");
 
         if (parts.length < 3) {
-            System.out.println("Usage: move <from> <to> [promotion], example: move e2 e4");
+            System.out.println("Usage: move <from> <to> [promotion]");
             return;
         }
 
@@ -100,8 +95,8 @@ public class GameplayUI {
         if (parts.length >= 4) {
             try {
                 promotion = ChessPiece.PieceType.valueOf(parts[3].toUpperCase());
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid promotion piece. Use: QUEEN ROOK BISHOP KNIGHT");
+            } catch (Exception e) {
+                System.out.println("Invalid promotion piece.");
                 return;
             }
         }
@@ -115,60 +110,59 @@ public class GameplayUI {
         move.promotion = (promotion != null) ? promotion.name() : null;
 
         ws.sendMakeMove(authToken, gameID, move);
+        System.out.println("Move sent. Waiting for server to update board...");
     }
 
     private void handleHighlight(String line) {
         String[] parts = line.split("\\s+");
 
         if (parts.length < 2) {
-            System.out.println("Usage: highlight <square>, e.g. highlight e2");
+            System.out.println("Usage: highlight <square>");
             return;
         }
 
         String sq = parts[1];
-
         if (!isValidAlg(sq)) {
-            System.out.println("Invalid square.");
+            System.out.println("Invalid notation.");
+            return;
+        }
+
+        ChessGame game = ws.getCurrentGame();
+        if (game == null) {
+            System.out.println("Game not loaded.");
             return;
         }
 
         ChessPosition pos = parseAlg(sq);
-
-        ChessGame game = ws.getCurrentGame();
-        if (game == null) {
-            System.out.println("Game not yet loaded.");
-            return;
-        }
-
         ChessPiece piece = game.getBoard().getPiece(pos);
+
         if (piece == null) {
-            System.out.println("No piece on " + sq);
+            System.out.println("No piece at " + sq);
             return;
         }
 
         Collection<ChessMove> legalMoves = piece.pieceMoves(game.getBoard(), pos);
 
-        System.out.println("Highlighting moves for piece on " + sq);
         BoardDrawer.drawBoardWithHighlights(game, ws.getPerspective(), pos, legalMoves);
     }
 
-    private boolean isValidAlg(String str) {
-        return str.matches("[a-h][1-8]");
+    private boolean isValidAlg(String s) {
+        return s.matches("[a-h][1-8]");
     }
 
-    private ChessPosition parseAlg(String str) {
-        int col = str.charAt(0) - 'a' + 1;
-        int row = str.charAt(1) - '0';
+    private ChessPosition parseAlg(String s) {
+        int col = s.charAt(0) - 'a' + 1;
+        int row = s.charAt(1) - '0';
         return new ChessPosition(row, col);
     }
 
     private void printHelp() {
         System.out.println("Gameplay Commands:");
-        System.out.println("  help                     - show this help");
-        System.out.println("  redraw                   - redraw the chess board");
+        System.out.println("  help                     - show help");
+        System.out.println("  redraw                   - redraw the board");
         System.out.println("  leave                    - leave the game");
-        System.out.println("  resign                   - resign the game");
-        System.out.println("  move <from> <to> [promo] - make a move (e.g., move e2 e4)");
-        System.out.println("  highlight <square>       - highlight legal moves of a piece (local only)");
+        System.out.println("  resign                   - resign from the game");
+        System.out.println("  move <from> <to> [promo] - make a move");
+        System.out.println("  highlight <square>       - show legal moves");
     }
 }
