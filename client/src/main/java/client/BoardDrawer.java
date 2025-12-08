@@ -70,14 +70,14 @@ public class BoardDrawer {
             System.out.println();
         }
 
-        System.out.print("   ");
+        System.out.print("  ");
         if (perspective == ChessGame.TeamColor.WHITE) {
             for (char c = 'a'; c <= 'h'; c++) {
-                System.out.print(" " + c + " ");
+                System.out.print(" " + c + "  ");
             }
         } else {
             for (char c = 'h'; c >= 'a'; c--) {
-                System.out.print(" " + c + " ");
+                System.out.print(" " + c + "  ");
             }
         }
 

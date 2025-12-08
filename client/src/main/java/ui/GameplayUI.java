@@ -141,7 +141,7 @@ public class GameplayUI {
             return;
         }
 
-        Collection<ChessMove> legalMoves = piece.pieceMoves(game.getBoard(), pos);
+        Collection<ChessMove> legalMoves = game.validMoves(pos);
 
         BoardDrawer.drawBoardWithHighlights(game, ws.getPerspective(), pos, legalMoves);
     }

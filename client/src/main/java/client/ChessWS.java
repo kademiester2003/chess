@@ -86,6 +86,8 @@ public class ChessWS implements WebSocket.Listener {
 
                     System.out.println("[LOAD_GAME] Game updated. Redrawing...");
                     BoardDrawer.drawBoard(currentGame, perspective);
+
+                    sendLocalCheckNotifications();
                 }
 
                 case "ERROR" -> {
@@ -163,6 +165,26 @@ public class ChessWS implements WebSocket.Listener {
 
     public ChessGame.TeamColor getPerspective() {
         return perspective;
+    }
+
+    private void sendLocalCheckNotifications() {
+        if (currentGame == null || localUsername == null) {
+            return;
+        }
+
+        ChessGame.TeamColor myColor = perspective;
+
+        boolean inCheck = currentGame.isInCheck(myColor);
+        boolean inCheckmate = currentGame.isInCheckmate(myColor);
+
+        if (inCheckmate) {
+            System.out.println("[NOTIFICATION] CHECKMATE — you lose.");
+            return;
+        }
+
+        if (inCheck) {
+            System.out.println("[NOTIFICATION] You are in CHECK!");
+        }
     }
 
     public boolean isConnected() {
