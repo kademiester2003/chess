@@ -26,7 +26,9 @@ public class GameWebSocketEndpoint {
         this.dao = dao;
     }
 
-    public void onConnect(WsConnectContext ctx) {}
+    public void onConnect(WsConnectContext ctx) {
+        ctx.enableAutomaticPings();
+    }
 
     public void onMessage(WsMessageContext ctx, String msg) {
         JsonObject root;

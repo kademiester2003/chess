@@ -301,11 +301,11 @@ public class ConsoleClient {
                 return;
             }
 
-            GameEntry g = lastGames.get(gameNum - 1);
-            System.out.println("Observing: " + g.gameName);
+            GameEntry chosen = lastGames.get(gameNum - 1);
+            System.out.println("Observing: " + chosen.gameName);
 
             try {
-                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, g.gameID, loggedInUser);
+                GameplayUI gameplay = new GameplayUI(facade.getWebSocketURL(), authToken, chosen.gameID, loggedInUser);
                 gameplay.run();
             } catch (Exception ex) {
                 System.out.println("Error observing game: " + ex.getMessage());

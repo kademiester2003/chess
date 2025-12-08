@@ -150,11 +150,10 @@ public class ChessWS implements WebSocket.Listener {
         }
 
         String json = gson.toJson(obj);
-        System.out.println("[ws ->] " + json);
+        //System.out.println("[ws ->] " + json);
 
-        socket.sendText(json, true)
-                .whenComplete((ws, ex) -> {
-                    if (ex != null) System.err.println("[ws] send failed: " + ex.getMessage());
+        socket.sendText(json, true).whenComplete((ws, ex) -> {
+                    if (ex != null) {System.err.println("[ws] send failed: " + ex.getMessage());}
                 });
     }
 

@@ -31,10 +31,10 @@ public class GameplayUI {
         while (ws.isConnected()) {
             System.out.print("> ");
             String line = scanner.nextLine();
-            if (line == null) break;
+            if (line == null) {break;}
 
             line = line.trim().toLowerCase();
-            if (line.isEmpty()) continue;
+            if (line.isEmpty()) {continue;}
 
             String cmd = line.split("\\s+")[0];
 

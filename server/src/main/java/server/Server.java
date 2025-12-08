@@ -18,6 +18,7 @@ public class Server {
     private final UserService userService;
     private final GameService gameService;
     private final Gson gson = new Gson();
+    private GameWebSocketEndpoint handler;
 
     public Server() {
         DataAccess tempDao;
@@ -30,6 +31,8 @@ public class Server {
         this.dao = tempDao;
         this.userService = new UserService(dao);
         this.gameService = new GameService(dao);
+
+        this.handler = new GameWebSocketEndpoint(dao);
 
         server = Javalin.create(config -> config.staticFiles.add("web"));
         registerEndpoints();
@@ -132,7 +135,6 @@ public class Server {
 
         //ws
         server.ws("/ws", ws -> {
-            GameWebSocketEndpoint handler = new GameWebSocketEndpoint(dao);
             ws.onConnect(handler::onConnect);
             ws.onMessage(ctx -> handler.onMessage(ctx, ctx.message()));
             ws.onClose(handler::onClose);
