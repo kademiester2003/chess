@@ -168,22 +168,32 @@ public class ChessWS implements WebSocket.Listener {
     }
 
     private void sendLocalCheckNotifications() {
-        if (currentGame == null || localUsername == null) {
+        if (currentGame == null) {
             return;
         }
 
-        ChessGame.TeamColor myColor = perspective;
+        boolean whiteInCheck = currentGame.isInCheck(ChessGame.TeamColor.WHITE);
+        boolean blackInCheck = currentGame.isInCheck(ChessGame.TeamColor.BLACK);
 
-        boolean inCheck = currentGame.isInCheck(myColor);
-        boolean inCheckmate = currentGame.isInCheckmate(myColor);
+        boolean whiteInMate = currentGame.isInCheckmate(ChessGame.TeamColor.WHITE);
+        boolean blackInMate = currentGame.isInCheckmate(ChessGame.TeamColor.BLACK);
 
-        if (inCheckmate) {
-            System.out.println("[NOTIFICATION] CHECKMATE — you lose.");
+        if (whiteInMate) {
+            System.out.println("[NOTIFICATION] CHECKMATE — White has been checkmated!");
+        }
+        if (blackInMate) {
+            System.out.println("[NOTIFICATION] CHECKMATE — Black has been checkmated!");
+        }
+
+        if (whiteInMate || blackInMate) {
             return;
         }
 
-        if (inCheck) {
-            System.out.println("[NOTIFICATION] You are in CHECK!");
+        if (whiteInCheck) {
+            System.out.println("[NOTIFICATION] White is in CHECK!");
+        }
+        if (blackInCheck) {
+            System.out.println("[NOTIFICATION] Black is in CHECK!");
         }
     }
 
