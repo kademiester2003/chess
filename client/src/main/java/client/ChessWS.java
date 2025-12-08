@@ -87,7 +87,7 @@ public class ChessWS implements WebSocket.Listener {
                     System.out.println("[LOAD_GAME] Game updated. Redrawing...");
                     BoardDrawer.drawBoard(currentGame, perspective);
 
-                    sendLocalCheckNotifications();
+                    sendLocalCheckNotifications(dbGame);
                 }
 
                 case "ERROR" -> {
@@ -167,33 +167,51 @@ public class ChessWS implements WebSocket.Listener {
         return perspective;
     }
 
-    private void sendLocalCheckNotifications() {
+    private void sendLocalCheckNotifications(Game dbGame) {
         if (currentGame == null) {
             return;
         }
 
-        boolean whiteInCheck = currentGame.isInCheck(ChessGame.TeamColor.WHITE);
-        boolean blackInCheck = currentGame.isInCheck(ChessGame.TeamColor.BLACK);
+        String whiteUsername = dbGame.whiteUsername();
+        String  blackUsername = dbGame.blackUsername();
 
-        boolean whiteInMate = currentGame.isInCheckmate(ChessGame.TeamColor.WHITE);
-        boolean blackInMate = currentGame.isInCheckmate(ChessGame.TeamColor.BLACK);
+        if (whiteUsername == null || blackUsername == null) {
+            return;
+        }
+
+        ChessGame.TeamColor white = ChessGame.TeamColor.WHITE;
+        ChessGame.TeamColor black = ChessGame.TeamColor.BLACK;
+
+        boolean whiteInCheck = currentGame.isInCheck(white);
+        boolean blackInCheck = currentGame.isInCheck(black);
+
+        boolean whiteInMate = currentGame.isInCheckmate(white);
+        boolean blackInMate = currentGame.isInCheckmate(black);
+
+        boolean whiteStalemated = currentGame.isInStalemate(white);
+        boolean blackStalemated = currentGame.isInStalemate(black);
 
         if (whiteInMate) {
-            System.out.println("[NOTIFICATION] CHECKMATE — White has been checkmated!");
-        }
-        if (blackInMate) {
-            System.out.println("[NOTIFICATION] CHECKMATE — Black has been checkmated!");
+            System.out.println("[NOTIFICATION] " + whiteUsername + " has been CHECKMATED!");
+            return;
         }
 
-        if (whiteInMate || blackInMate) {
+        if (blackInMate) {
+            System.out.println("[NOTIFICATION] " + blackUsername + " has been CHECKMATED!");
+            return;
+        }
+
+        if (whiteStalemated || blackStalemated) {
+            System.out.println("[NOTIFICATION] Stalemate — the game is a draw.");
             return;
         }
 
         if (whiteInCheck) {
-            System.out.println("[NOTIFICATION] White is in CHECK!");
+            System.out.println("[NOTIFICATION] " + whiteUsername + " is in CHECK!");
         }
+
         if (blackInCheck) {
-            System.out.println("[NOTIFICATION] Black is in CHECK!");
+            System.out.println("[NOTIFICATION] " + blackUsername + " is in CHECK!");
         }
     }
 

@@ -237,7 +237,7 @@ public class GameWebSocketEndpoint {
 
             ChessGame chessGame = model.game();
             if (chessGame == null) {
-                sendError(ctx, "error: game internal state missing");
+                sendError(ctx, "error: game is over. Type 'leave' to exit");
                 return;
             }
 
