@@ -7,10 +7,6 @@ import java.util.Collection;
 
 public class BoardDrawer {
 
-    public static void drawInitialBoard(ChessGame.TeamColor perspective) {
-        drawBoard(new ChessGame(), perspective);
-    }
-
     public static void drawBoard(ChessGame game, ChessGame.TeamColor perspective) {
         drawBoardWithHighlights(game, perspective, null, null);
     }
